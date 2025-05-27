@@ -1,0 +1,804 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Enhanced Natural Paraphraser</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+ :root {
+   --primary: #1a4ab9;
+   --secondary: #f8fafc;
+   --border: #d2d9e7;
+   --text: #23272f;
+   --radius: 12px;
+ }
+ body {
+   font-family: 'Segoe UI', Arial, sans-serif;
+   margin: 0;
+   background: var(--secondary);
+   color: var(--text);
+   min-height: 100vh;
+ }
+ .container {
+   max-width: 1000px;
+   margin: 24px auto;
+   background: #fff;
+   border-radius: var(--radius);
+   box-shadow: 0 4px 12px rgba(26, 74, 185, 0.1);
+   padding: 24px;
+   display: flex;
+   flex-direction: column;
+   gap: 16px;
+ }
+ .header {
+   text-align: center;
+ }
+ .header h1 {
+   font-size: 1.6rem;
+   margin-bottom: 4px;
+ }
+ .header p {
+   color: #64748b;
+   font-size: 0.95rem;
+ }
+ .controls {
+   display: flex;
+   gap: 12px;
+   flex-wrap: wrap;
+   align-items: center;
+ }
+ select {
+   padding: 8px;
+   border-radius: var(--radius);
+   border: 1px solid var(--border);
+   background: #f5f7fa;
+   font-size: 0.95rem;
+ }
+ select:focus {
+   border-color: var(--primary);
+   outline: none;
+ }
+ .toggle-container {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+ }
+ .toggle-label {
+   font-size: 0.95rem;
+   color: var(--text);
+ }
+ .toggle-switch {
+   position: relative;
+   width: 48px;
+   height: 24px;
+ }
+ .toggle-switch input {
+   opacity: 0;
+   width: 0;
+   height: 0;
+ }
+ .slider {
+   position: absolute;
+   cursor: pointer;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   background-color: #ccc;
+   transition: 0.4s;
+   border-radius: 24px;
+ }
+ .slider:before {
+   position: absolute;
+   content: "";
+   height: 20px;
+   width: 20px;
+   left: 2px;
+   bottom: 2px;
+   background-color: white;
+   transition: 0.4s;
+   border-radius: 50%;
+ }
+ input:checked + .slider {
+   background-color: var(--primary);
+ }
+ input:checked + .slider:before {
+   transform: translateX(24px);
+ }
+ .areas {
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+ }
+ .area {
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   gap: 8px;
+ }
+ .area label {
+   font-weight: 600;
+   font-size: 0.95rem;
+   color: var(--primary);
+ }
+ .area-header {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+ }
+ textarea {
+   width: 100%;
+   min-height: 150px;
+   font-size: 0.9rem;
+   padding: 10px;
+   border-radius: var(--radius);
+   border: 1px solid var(--border);
+   background: #f5f7fa;
+   color: var(--text);
+   resize: vertical;
+   font-family: 'Fira Mono', monospace;
+   line-height: 1.5;
+ }
+ textarea:focus {
+   border-color: var(--primary);
+   outline: none;
+ }
+ button {
+   background: var(--primary);
+   color: #fff;
+   border: none;
+   border-radius: 8px;
+   padding: 10px 20px;
+   font-size: 0.95rem;
+   font-weight: 600;
+   cursor: pointer;
+ }
+ button:hover {
+   background: #143c8f;
+ }
+ button:disabled {
+   background: #7abaff;
+   cursor: not-allowed;
+ }
+ .copy-btn {
+   background: #64748b;
+   padding: 6px 12px;
+   font-size: 0.85rem;
+ }
+ .copy-btn:hover {
+   background: #475569;
+ }
+ .progress {
+   width: 100%;
+   height: 5px;
+   background: var(--border);
+   border-radius: var(--radius);
+   overflow: hidden;
+   display: none;
+ }
+ .progress-bar {
+   width: 0;
+   height: 100%;
+   background: var(--primary);
+   transition: width 0.2s;
+ }
+ .word-count {
+   font-size: 0.85rem;
+   color: #64748b;
+   text-align: right;
+ }
+ @media (min-width: 768px) {
+   .areas {
+     flex-direction: row;
+   }
+   textarea {
+     min-height: 200px;
+   }
+ }
+</style>
+</head>
+<body>
+<div class="container">
+ <div class="header">
+   <h1>Advanced AI-Text Humanizer</h1>
+   <p>DISCLAIMER: This is still in beta testing, expect frequent grammatical mistakes, AI comments, and hyphens in text. 
+   <br>For now, just use a grammar tool to fix those mistakes or manually check it if you're not sure.
+   
+   <br><br> Instructions: Paste text into humanizer, choose 1 of the 3 modes as well as personal or general. Then take your output. <br><br>
+   Sometimes, it might still be around 60-70% detected AI, so just input your last output and keep running the paraphraser.
+   </p>
+ </div>
+ <div class="controls">
+   <select id="tone">
+     <option value="professional">Professional</option>
+     <option value="academic">Academic</option>
+     <option value="casual">Casual</option>
+   </select>
+   <div class="toggle-container">
+     <label class="toggle-label">General</label>
+     <label class="toggle-switch">
+       <input type="checkbox" id="perspective-toggle" checked>
+       <span class="slider"></span>
+     </label>
+     <label class="toggle-label">Personal</label>
+   </div>
+   <button id="paraphrase-btn">Paraphrase</button>
+ </div>
+ <div class="areas">
+   <div class="area">
+     <label for="input">Input Text</label>
+     <textarea id="input" placeholder="Enter text..."></textarea>
+     <div class="word-count" id="input-word-count">0 words</div>
+   </div>
+   <div class="area">
+     <div class="area-header">
+       <label for="output">Paraphrased Output</label>
+       <button class="copy-btn" id="copy-btn">Copy</button>
+     </div>
+     <textarea id="output" readonly></textarea>
+     <div class="word-count" id="output-word-count">0 words</div>
+   </div>
+ </div>
+ <div class="progress">
+   <div class="progress-bar"></div>
+ </div>
+</div>
+<div>
+    <br>
+    <p style="text-align: center;">If you have any issues please report them to me. <br>Discord: snjzz38, Insta: @snjzz38_</p>
+</div>
+<script>
+ const groqApiKey = "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";
+ const input = document.getElementById('input');
+ const output = document.getElementById('output');
+ const tone = document.getElementById('tone');
+ const perspectiveToggle = document.getElementById('perspective-toggle');
+ const paraphraseBtn = document.getElementById('paraphrase-btn');
+ const copyBtn = document.getElementById('copy-btn');
+ const progress = document.querySelector('.progress');
+ const progressBar = document.querySelector('.progress-bar');
+ const inputWordCount = document.getElementById('input-word-count');
+ const outputWordCount = document.getElementById('output-word-count');
+ const CACHE_EXPIRY = 24 * 60 * 60 * 1000;
+ const contextStore = [];
+
+ const simpleSynonyms = {
+   'demonstrate': ['show', 'prove', 'point out', 'make clear'],
+   'illustrate': ['show', 'point out', 'make clear', 'highlight'],
+   'exemplify': ['show', 'point to', 'highlight', 'prove'],
+   'substantiate': ['back up', 'prove', 'support', 'show'],
+   'corroborate': ['back up', 'support', 'confirm', 'prove'],
+   'facilitate': ['help', 'make easy', 'assist', 'speed up'],
+   'optimize': ['improve', 'make better', 'fix up', 'boost'],
+   'utilize': ['use', 'employ', 'apply', 'work with'],
+   'implement': ['put in place', 'start', 'use', 'apply'],
+   'establish': ['set up', 'start', 'create', 'build'],
+   'maintain': ['keep', 'hold', 'preserve', 'continue'],
+   'enhance': ['improve', 'boost', 'make better', 'upgrade'],
+   'comprehend': ['understand', 'get', 'grasp', 'see'],
+   'terminate': ['end', 'stop', 'finish', 'cut off'],
+   'commence': ['start', 'begin', 'kick off', 'open'],
+   'necessitate': ['need', 'require', 'call for', 'demand'],
+   'prioritize': ['put first', 'focus on', 'rank', 'value most'],
+   'accommodate': ['fit', 'house', 'hold', 'make room for'],
+   'collaborate': ['work together', 'team up', 'join forces', 'partner'],
+   'consolidate': ['combine', 'merge', 'bring together', 'unite'],
+   'leverage': ['use', 'apply', 'work with', 'employ'],
+   'synergy': ['teamwork', 'combined effect', 'working together'],
+   'paradigm': ['model', 'approach', 'way', 'method'],
+   'methodology': ['method', 'approach', 'way', 'system'],
+   'infrastructure': ['basic setup', 'foundation', 'framework', 'base'],
+   'stakeholder': ['person involved', 'party', 'player', 'member'],
+   'deliverable': ['result', 'output', 'product', 'outcome'],
+   'scalable': ['growable', 'expandable', 'flexible', 'adaptable'],
+   'robust': ['strong', 'solid', 'reliable', 'tough'],
+   'seamless': ['smooth', 'easy', 'flowing', 'connected'],
+   'streamline': ['simplify', 'make easier', 'smooth out', 'improve'],
+   'proactive': ['forward-thinking', 'ahead of time', 'preventive'],
+   'innovative': ['new', 'creative', 'fresh', 'original'],
+   'strategic': ['planned', 'key', 'important', 'smart'],
+   'holistic': ['complete', 'whole', 'full', 'total'],
+   'granular': ['detailed', 'specific', 'precise', 'exact'],
+   'significant': ['important', 'big', 'major', 'key'],
+   'substantial': ['large', 'big', 'major', 'considerable'],
+   'fundamental': ['basic', 'key', 'core', 'main'],
+   'comprehensive': ['complete', 'full', 'thorough', 'total'],
+   'preliminary': ['early', 'first', 'initial', 'beginning'],
+   'subsequent': ['later', 'next', 'following', 'after'],
+   'predominant': ['main', 'biggest', 'top', 'leading'],
+   'prevalent': ['common', 'widespread', 'frequent', 'usual'],
+   'explicit': ['clear', 'direct', 'obvious', 'plain'],
+   'implicit': ['suggested', 'implied', 'hinted', 'indirect'],
+   'hypothesis': ['idea', 'theory', 'guess', 'thought'],
+   'phenomenon': ['event', 'happening', 'occurrence', 'thing'],
+   'criteria': ['standards', 'rules', 'requirements', 'measures'],
+   'parameters': ['limits', 'boundaries', 'rules', 'guidelines'],
+   'variables': ['factors', 'elements', 'parts', 'pieces'],
+   'furthermore': ['also', 'plus', 'and', 'besides'],
+   'moreover': ['also', 'plus', 'what\'s more', 'and'],
+   'nonetheless': ['but', 'still', 'even so', 'yet'],
+   'nevertheless': ['but', 'still', 'even so', 'however'],
+   'consequently': ['so', 'therefore', 'as a result', 'thus'],
+   'subsequently': ['then', 'later', 'next', 'after that'],
+   'accordingly': ['so', 'therefore', 'thus', 'as a result'],
+   'alternatively': ['or', 'instead', 'on the other hand'],
+   'acquire': ['get', 'gain', 'obtain', 'pick up'],
+   'ascertain': ['find out', 'learn', 'discover', 'figure out'],
+   'commence': ['start', 'begin', 'kick off', 'open'],
+   'constitute': ['make up', 'form', 'create', 'be'],
+   'endeavor': ['try', 'attempt', 'effort', 'work'],
+   'expedite': ['speed up', 'hurry', 'rush', 'quicken'],
+   'modify': ['change', 'alter', 'adjust', 'tweak'],
+   'perceive': ['see', 'notice', 'spot', 'observe'],
+   'retain': ['keep', 'hold', 'save', 'preserve'],
+   'transform': ['change', 'turn into', 'convert', 'shift'],
+   'form': ['form'],
+   'covered': ['covered'],
+   'initial': ['initial'],
+   'suggestive': ['implied'],
+   'hypothetical': ['hint'],
+   'imply': ['implied'],
+   'phenomenal': ['great'],
+   'criterium': ['criterion'],
+   'plural': ['plural'],
+   'parameter': ['limit'],
+   'variable': ['element'],
+   'more': ['more'],
+   'never': ['never'],
+   'so': ['so'],
+   'a': ['a'],
+   'result': ['result'],
+   'then': ['then'],
+   'or': ['or'],
+   'get': ['get'],
+   'find': ['find'],
+   'out': ['out'],
+   'start': ['start'],
+   'make': ['make'],
+   'up': ['up'],
+   'try': ['try'],
+   'speed': ['speed'],
+   'see': ['see'],
+   'keep': ['keep'],
+   'change': ['change']
+ };
+
+ const sentencePatterns = [
+   (words, punct) => `${words.join(' ')}${punct}`,
+   (words, punct) => {
+     if (words.length > 4 && (words.includes('is') || words.includes('are') || words.includes('was') || words.includes('were'))) {
+       const verbIndex = words.findIndex(w => ['is', 'are', 'was', 'were'].includes(w));
+       if (verbIndex > 0 && verbIndex < words.length - 1) {
+         const subject = words.slice(0, verbIndex);
+         const verb = words[verbIndex];
+         const object = words.slice(verbIndex + 1);
+         return `${object.join(' ')} ${verb} ${subject.join(' ')}${punct}`;
+       }
+     }
+     return `${words.join(' ')}${punct}`;
+   },
+   (words, punct) => {
+     const transitions = ['Actually', 'In fact', 'Basically', 'Simply put', 'The thing is'];
+     const transition = transitions[Math.floor(Math.random() * transitions.length)];
+     return `${transition}, ${words.join(' ').toLowerCase()}${punct}`;
+   },
+   (words, punct) => {
+     if (words.length > 8) {
+       const midPoint = Math.floor(words.length / 2);
+       const connectors = ['and', 'but', 'so', 'because', 'while', 'since'];
+       const connectorIndex = words.findIndex(w => connectors.includes(w.toLowerCase()));
+       if (connectorIndex > 0) {
+         const first = words.slice(0, connectorIndex);
+         const second = words.slice(connectorIndex + 1);
+         return `${first.join(' ')}. ${second.join(' ').charAt(0).toUpperCase()}${second.join(' ').slice(1)}${punct}`;
+       }
+     }
+     return `${words.join(' ')}${punct}`;
+   },
+   (words, punct) => {
+     const emphasis = ['clearly', 'obviously', 'definitely', 'certainly', 'really'];
+     const emphasisWord = emphasis[Math.floor(Math.random() * emphasis.length)];
+     const insertIndex = Math.floor(words.length / 3);
+     words.splice(insertIndex, 0, emphasisWord);
+     return `${words.join(' ')}${punct}`;
+   }
+ ];
+
+ function updateWordCount(textarea, counter) {
+   const text = textarea.value.trim();
+   const words = text ? text.split(/\s+/).filter(w => w).length : 0;
+   counter.textContent = `${words} words`;
+ }
+
+ function shuffleArray(array) {
+   const shuffled = [...array];
+   for (let i = shuffled.length - 1; i > 0; i--) {
+     const j = Math.floor(Math.random() * (i + 1));
+     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+   }
+   return shuffled;
+ }
+
+ function getComplexityScore(word) {
+   const syllableCount = countSyllables(word);
+   const lengthScore = word.length / 15;
+   const commonWords = ['the', 'and', 'but', 'for', 'are', 'can', 'get', 'has', 'him', 'his', 'how', 'man', 'new', 'now', 'old', 'see', 'two', 'who', 'boy', 'did'];
+   const isCommon = commonWords.includes(word.toLowerCase());
+   return isCommon ? 0 : (syllableCount * 0.4 + lengthScore * 0.6);
+ }
+
+ function countSyllables(word) {
+   word = word.toLowerCase();
+   if (word.length <= 3) return 1;
+   word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+   word = word.replace(/^y/, '');
+   const matches = word.match(/[aeiouy]{1,2}/g);
+   return matches ? Math.max(matches.length, 1) : 1;
+ }
+
+ function replaceWithSimpler(word) {
+   const lowerWord = word.toLowerCase().replace(/[^\w]/g, '');
+   if (simpleSynonyms[lowerWord]) {
+     const options = shuffleArray(simpleSynonyms[lowerWord]);
+     return options[0];
+   }
+   const suffixes = ['ing', 'ed', 'er', 'est', 'ly', 'tion', 'sion', 'ment', 'ness', 'ity'];
+   for (const suffix of suffixes) {
+     if (lowerWord.endsWith(suffix) && lowerWord.length > 4) {
+       const root = lowerWord.slice(0, -suffix.length);
+       if (simpleSynonyms[root]) {
+         const options = shuffleArray(simpleSynonyms[root]);
+         return options[0] + (suffix === 'ly' ? 'ly' : '');
+       }
+     }
+   }
+   return word;
+ }
+
+ function restructureSentence(sentence) {
+   const words = sentence.split(/\s+/);
+   const punctuation = sentence.match(/[.!?]$/) ? sentence.match(/[.!?]$/)[0] : '.';
+   const cleanWords = words.map(w => w.replace(/[.!?]$/, ''));
+   const pattern = sentencePatterns[Math.floor(Math.random() * sentencePatterns.length)];
+   return pattern(cleanWords, punctuation);
+ }
+
+ function advancedWordReplacement(text) {
+   const words = text.split(/(\s+|[.!?,:;])/);
+   const replacementRate = 0.4 + Math.random() * 0.3;
+   for (let i = 0; i < words.length; i++) {
+     if (/^\w+$/.test(words[i]) && Math.random() < replacementRate) {
+       const complexityScore = getComplexityScore(words[i]);
+       if (complexityScore > 0.3 || Math.random() < 0.2) {
+         const replacement = replaceWithSimpler(words[i]);
+         if (replacement !== words[i]) {
+           if (words[i][0] === words[i][0].toUpperCase()) {
+             words[i] = replacement.charAt(0).toUpperCase() + replacement.slice(1);
+           } else {
+             words[i] = replacement;
+           }
+         }
+       }
+     }
+   }
+   return words.join('');
+ }
+
+ function analyzeStructure(text) {
+   const lines = text.split('\n').filter(line => line.trim());
+   const structure = [];
+   for (let i = 0; i < lines.length; i++) {
+     const line = lines[i].trim();
+     const wordCount = line.split(/\s+/).filter(w => w).length;
+     const isTitle = (
+       i === 0 && wordCount <= 15 ||
+       wordCount <= 8 ||
+       (i > 0 && wordCount < lines[i-1]?.split(/\s+/).filter(w => w).length / 2)
+     );
+     structure.push({
+       content: line,
+       type: isTitle ? 'title' : 'paragraph',
+       wordCount: wordCount,
+       index: i
+     });
+   }
+   return structure;
+ }
+
+ function checkGrammar(text) {
+   let corrected = text;
+   const grammarRules = [
+     { pattern: /\b(\w+s)\s+(are)\b/gi, replacement: '$1 is' },
+     { pattern: /\b(I|you|we|they)\s+(is)\b/gi, replacement: '$1 are' },
+     { pattern: /\b(he|she|it)\s+(are)\b/gi, replacement: '$1 is' },
+     { pattern: /\ba\s+([aeiouAEIOU])/g, replacement: 'an $1' },
+     { pattern: /\ban\s+([^aeiouAEIOU])/g, replacement: 'a $1' },
+     { pattern: /\b(\w+)\s+\1\b/gi, replacement: '$1' },
+     { pattern: /,\s*\./g, replacement: '.' },
+     { pattern: /,\s*!/g, replacement: '!' },
+     { pattern: /,\s*\?/g, replacement: '?' },
+     { pattern: /\s{2,}/g, replacement: ' ' },
+     { pattern: /([.!?])\s*([A-Z])/g, replacement: '$1 $2' },
+     { pattern: /([.!?]\s+)([a-z])/g, replacement: (match, p1, p2) => p1 + p2.toUpperCase() }
+   ];
+   grammarRules.forEach(rule => {
+     corrected = corrected.replace(rule.pattern, rule.replacement);
+   });
+   corrected = corrected.charAt(0).toUpperCase() + corrected.slice(1);
+   return corrected.trim();
+ }
+
+ function trimToWordCount(text, targetWordCount) {
+   const words = text.split(/\s+/).filter(w => w);
+   if (words.length <= targetWordCount) return text;
+   const trimmedWords = words.slice(0, targetWordCount);
+   let result = trimmedWords.join(' ');
+   const lastChar = text.match(/[.!?]$/) ? text.match(/[.!?]$/)[0] : '.';
+   if (!result.match(/[.!?]$/)) result += lastChar;
+   return result;
+ }
+
+ async function processText(text, tone, totalWordCount, contextStore) {
+   const isFirstPerson = perspectiveToggle.checked;
+   const randomTemp = 0.8 + Math.random() * 0.4;
+   const structure = analyzeStructure(text);
+   const results = [];
+   let currentWordCount = 0;
+
+   for (let section of structure) {
+     const sectionWordCount = section.wordCount;
+     let processedSection = advancedWordReplacement(section.content);
+     if (section.type === 'title') {
+       const sentences = processedSection.match(/[^.!?]+[.!?]?/g) || [processedSection];
+       processedSection = sentences.map(s => s.trim()).join(' ');
+     } else {
+       const sentences = processedSection.match(/[^.!?]+[.!?]?/g) || [processedSection];
+       const restructuredSentences = sentences.map(sentence => {
+         return Math.random() < 0.6 ? restructureSentence(sentence.trim()) : sentence.trim();
+       });
+       processedSection = restructuredSentences.join(' ');
+     }
+     const contextStr = contextStore.join(', ');
+     const sectionPrompt = isFirstPerson
+       ? `Transform this ${section.type} into natural, conversational English using "I" perspective in a ${tone} tone. 
+       Replace complex words with everyday alternatives. ${section.type === 'title' ? 'Keep it concise and catchy.' : 
+       'Vary sentence structure significantly.'} CRITICAL: Output exactly ${sectionWordCount} words (±2 words max). 
+       Maintain perfect grammar. Focus on clarity and simplicity. Context: "${contextStr}". Text: "${processedSection}"
+       don't add any comments like (Here's the Transformed paragraph)
+       Remove all hyphens like — or dashes that aren't connected to any words unlike (fast-approaching) from the text.`
+       : `Transform this ${section.type} into natural, clear English in a ${tone} tone. Replace complex academic and business 
+       jargon with simple, everyday words. ${section.type === 'title' ? 'Keep it concise and engaging.' : 
+       'Vary sentence structures and lengths significantly.'} CRITICAL: Output exactly ${sectionWordCount} words
+       (±2 words max). Ensure perfect grammar throughout. Make it sound like normal conversation. Context: "${contextStr}".
+       Text: "${processedSection}", don't add any comments like (Here's the Transformed paragraph) and PLEASE REMOVE ALL HYPHENS YOU SEE
+        WITH APPROPRIATE REPLACEMENTS DEPENDING ON CONTEXT SUCH AS A SPACE OR A COMMA       `;
+      
+     try {
+       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json',
+           'Authorization': `Bearer ${groqApiKey}`
+         },
+         body: JSON.stringify({
+           model: 'llama-3.1-8b-instant',
+           messages: [{ role: 'user', content: sectionPrompt }],
+           max_tokens: Math.max(sectionWordCount * 4, 100),
+           temperature: section.type === 'title' ? 0.7 : randomTemp
+         })
+       });
+       if (response.ok) {
+         const data = await response.json();
+         let result = data.choices[0].message.content || processedSection;
+         result = checkGrammar(result);
+         result = trimToWordCount(result, sectionWordCount);
+         results.push(result);
+         currentWordCount += result.split(/\s+/).filter(w => w).length;
+       } else {
+         const fallback = checkGrammar(processedSection);
+         results.push(trimToWordCount(fallback, sectionWordCount));
+         currentWordCount += sectionWordCount;
+       }
+     } catch {
+       const fallback = checkGrammar(processedSection);
+       results.push(trimToWordCount(fallback, sectionWordCount));
+       currentWordCount += sectionWordCount;
+     }
+
+     if (currentWordCount > totalWordCount * 1.02) {
+       const excess = currentWordCount - totalWordCount;
+       const lastResult = results[results.length - 1];
+       results[results.length - 1] = trimToWordCount(lastResult, sectionWordCount - excess);
+     }
+   }
+
+   let finalResult = results.join('\n\n');
+   const finalWordCount = finalResult.split(/\s+/).filter(w => w).length;
+   if (finalWordCount > totalWordCount * 1.02) {
+     finalResult = trimToWordCount(finalResult, Math.floor(totalWordCount * 1.02));
+   }
+   return finalResult;
+ }
+
+ function finalizeText(text, tone, targetWordCount) {
+   text = text.replace(/,\s*\w+ing\b/g, (match) => {
+     const word = match.replace(/,\s*/, '');
+     return ` and ${word.replace(/ing$/, 's')}`;
+   });
+   const currentWordCount = text.split(/\s+/).filter(w => w).length;
+   if (currentWordCount >= targetWordCount) return text;
+
+   const fillers = {
+     casual: ['s', 'like', 'actually'],
+     professional: ['notably', 'indeed', 'clearly'],
+     academic: ['y', 'particularly', 'essentially']
+   };
+   if (Math.random() < 0.2 && currentWordCount + 2 <= targetWordCount) {
+     const filler = fillers[tone][Math.floor(Math.random() * fillers[tone].length)];
+     const sentences = text.split(/([.!?])/);
+     if (sentences.length > 2) {
+       const insertIndex = Math.floor(sentences.length / 2);
+       sentences[insertIndex] = ` ${filler}, ${sentences[insertIndex].trim()}`;
+       text = sentences.join('');
+     }
+   }
+   return trimToWordCount(text, targetWordCount);
+}
+
+ async function grammarFix(inputText) {
+   const ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+   const MODEL = "llama-3.1-8b-instant";
+   if (!inputText.trim()) return inputText;
+
+   const text = inputText.trim();
+   const blocks = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+   const results = [];
+
+   async function fixBlock(blockText, type) {
+     const sectionWordCount = blockText.split(/\s+/).filter(w => w).length;
+     const prompt = `Analyze this text word-by-word, using context from neighboring words in the same ${type} to understand it better. Fix typos like "includs", and grammatical errors like "high stakes is important". Correct punctuation errors like misplaced commas or extra punctuation. Remove hyphens not connected to words (e.g., not in "fast-approaching").
+
+Keep the formatting and structure identical: maintain the same number of paragraphs and titles with similar sizes.
+
+Output only the corrected text without explanations or comments.
+
+Input text:
+${blockText}`;
+
+     try {
+       const response = await fetch(ENDPOINT, {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+           "Authorization": `Bearer ${groqApiKey}`
+         },
+         body: JSON.stringify({
+           model: MODEL,
+           messages: [{ role: "user", content: prompt }],
+           max_tokens: Math.max(blockText.split(/\s+/).length * 2, 500),
+           temperature: 0.2
+         })
+       });
+
+       if (!response.ok) {
+         console.error(`API Error: ${response.status} ${response.statusText}`);
+         return blockText;
+       }
+
+       const data = await response.json();
+       if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+         console.error('Invalid API response structure');
+         return blockText;
+       }
+
+       let correctedText = data.choices[0].message.content;
+       if (!correctedText) {
+         console.error('No content received from API');
+         return blockText;
+       }
+
+       return trimToWordCount(correctedText.trim(), sectionWordCount);
+     } catch (error) {
+       console.error('Grammar fix error:', error);
+       return blockText;
+     }
+   }
+
+   for (let i = 0; i < blocks.length; i++) {
+     const type = i === 0 && blocks[i].split(/\s+/).length <= 15 ? "title" : "paragraph";
+     results.push(await fixBlock(blocks[i], type));
+   }
+
+   const outputParagraphs = results.filter(p => p.trim().length > 0);
+   return outputParagraphs.join('\n\n');
+ }
+
+ input.addEventListener('input', () => updateWordCount(input, inputWordCount));
+ output.addEventListener('input', () => updateWordCount(output, outputWordCount));
+
+ copyBtn.addEventListener('click', () => {
+   output.select();
+   document.execCommand('copy');
+   copyBtn.textContent = 'Copied!';
+   setTimeout(() => {
+     copyBtn.textContent = 'Copy';
+   }, 1000);
+ });
+
+ paraphraseBtn.addEventListener('click', async () => {
+   const text = input.value.trim();
+   output.value = '';
+   updateWordCount(output, outputWordCount);
+   if (!text) {
+     output.value = 'Please enter some text to paraphrase.';
+     return;
+   }
+   paraphraseBtn.disabled = true;
+   paraphraseBtn.textContent = 'Paraphrasing...';
+   progress.style.display = 'block';
+   progressBar.style.width = '10%';
+   const structure = analyzeStructure(text);
+   contextStore.length = 0;
+   structure.forEach(section => {
+     contextStore.push(section.content.split(/\s+/).slice(0, 3).join(' '));
+   });
+   progressBar.style.width = '40%';
+   let result = await processText(text, tone.value, text.split(/\s+/).filter(w => w).length, contextStore);
+   progressBar.style.width = '80%';
+   const finalSections = result.split('\n\n').map(section => {
+     const sectionWordCount = section.split(/\s+/).filter(w => w).length;
+     return finalizeText(section, tone.value, sectionWordCount);
+   });
+   result = finalSections.join('\n\n');
+   result = await grammarFix(result);
+   progressBar.style.width = '100%';
+   output.value = result;
+   updateWordCount(output, outputWordCount);
+   setTimeout(() => {
+     progress.style.display = 'none';
+     paraphraseBtn.disabled = false;
+     paraphraseBtn.textContent = 'Paraphrase';
+   }, 500);
+ });
+</script>
+</body>
+</html>
