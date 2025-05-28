@@ -287,7 +287,15 @@
     <p style="text-align: center;">If you have any issues please report them to me. <br>Discord: snjzz38, Insta: @snjzz38_</p>
 </div>
 <script>
- const groqApiKey = "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";
+ let groqApiKey = "";
+  async function getApiKey() {
+    const res = await fetch('/api/key');
+    const data = await res.json();
+    groqApiKey = data.apiKey;
+    console.log("Key loaded securely.");
+  }
+getApiKey();
+        
  const input = document.getElementById('input');
  const output = document.getElementById('output');
  const tone = document.getElementById('tone');
