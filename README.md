@@ -1,8 +1,8 @@
-# ✨ Write-Human ✨  
+# ✨ GPT-100 ✨  
 *A free, open-source AI humanizing tool*
 
 ## 🌿 Overview  
-Write-Human is an AI-powered tool designed to transform robotic AI-generated text into warm, natural, human-like language. Whether you're editing AI-written articles, crafting engaging stories, or improving automated responses, Write-Human helps refine text to sound more authentic and conversational.
+GPT-100 is an AI-powered tool designed to transform robotic AI-generated text into warm, natural, human-like language. Whether you're editing AI-written articles, crafting engaging stories, or improving automated responses, GPT-100 helps refine text to sound more authentic and conversational.
 
 ## 🚀 Features  
 ✅ **Human-like Text Enhancement** – Converts AI-generated content into expressive and natural prose  
