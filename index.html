@@ -74,11 +74,11 @@ textarea:focus{border-color:var(--primary);outline:none}
 
 
 <script>
- let ApiKey = "";
+ let apikey = "";
   async function getApiKey() {
     const res = await fetch('/api/key');
     const data = await res.json();
-    groqApiKey = data.apiKey;
+    apikey = data.apiKey;
     console.log("Key loaded securely.");
   }More actions
 getApiKey();
