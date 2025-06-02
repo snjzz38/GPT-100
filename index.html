@@ -74,11 +74,11 @@ textarea:focus{border-color:var(--primary);outline:none}
 
 
 <script>
- let apikey = "";
+ let apiKey = "";
   async function getApiKey() {
     const res = await fetch('/api/key');
     const data = await res.json();
-    apikey = data.apiKey;
+    apiKey = data.apiKey;
     console.log("Key loaded securely.");
   }
 getApiKey();
