@@ -74,7 +74,14 @@ textarea:focus{border-color:var(--primary);outline:none}
 
 
 <script>
-let apiKey = "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";
+ let ApiKey = "";
+  async function getApiKey() {
+    const res = await fetch('/api/key');
+    const data = await res.json();
+    groqApiKey = data.apiKey;
+    console.log("Key loaded securely.");
+  }More actions
+getApiKey();
 
 
 const els = {
