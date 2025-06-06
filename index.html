@@ -73,16 +73,19 @@ textarea:focus{border-color:var(--primary);outline:none}
 </div>
 
 <script>
-const apiKey = "";
-
-  async function getApiKey() {
+let apiKey = "";
+async function getApiKey() {
+  try {
     const res = await fetch('/api/key');
+    if (!res.ok) throw new Error('Failed to fetch API key');
     const data = await res.json();
     apiKey = data.apiKey;
     console.log("Key loaded securely.");
+  } catch (error) {
+    console.error('Error fetching API key:', error);
+    throw error;
   }
-getApiKey();
-
+}
 
 const els = {
   input: document.getElementById('input'),
