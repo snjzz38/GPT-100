@@ -40,419 +40,760 @@
         }
         .controls {
             display: flex;
-            gap: 16px;
-            margin-bottom: 20px;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 16px;
         }
-        .control-group {
-            flex: 1;
+        select, button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.95rem;
+            background: #fff;
+        }
+        button {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover { background: #143c8f; }
+        button:disabled {
+            background: #a3b9e0;
+            cursor: not-allowed;
+        }
+        .toggle {
             display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toggle input {
+            width: 40px;
+            height: 20px;
+            appearance: none;
+            background: #ccc;
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s; /* Adjusted from background-color for visual */
+        }
+        .toggle input::before {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        .toggle input:checked {
+            background: var(--primary);
+        }
+        .toggle input:checked::before { transform: translateX(20px); }
+        .areas {
+            display: flex;
+            gap: 16px;
             flex-direction: column;
         }
-        label {
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            color: var(--text);
+        @media (min-width: 768px) {
+            .areas { flex-direction: row; }
         }
-        textarea, input[type="number"], select {
+        .area { flex: 1; }
+        .area-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .area-header label {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .area-header button {
+            background: #64748b;
+            padding: 4px 10px;
+            font-size: 0.85rem;
+        }
+        .area-header button:hover { background: #475569; }
+        textarea {
             width: 100%;
+            min-height: 250px;
             padding: 12px;
             border: 1px solid var(--border);
             border-radius: 8px;
-            font-size: 1rem;
-            color: var(--text);
-            background-color: #fff;
+            background: #f8fafc;
+            font-family: 'Fira Mono', monospace;
+            font-size: 0.9rem;
             resize: vertical;
-            min-height: 120px;
-            font-family: 'Segoe UI', Arial, sans-serif;
         }
-        input[type="number"], select {
-            min-height: auto;
-            height: 48px;
+        textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(26, 74, 185, 0.2);
         }
-        .button-group {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-            justify-content: center;
+        .word-count {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-align: right;
+            margin-top: 4px;
         }
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: background-color 0.2s ease;
-        }
-        button.primary {
-            background-color: var(--primary);
-            color: #fff;
-        }
-        button.primary:hover {
-            background-color: #153a99;
-        }
-        button.secondary {
-            background-color: #e2e8f0;
-            color: var(--primary);
-        }
-        button.secondary:hover {
-            background-color: #cbd5e1;
-        }
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .progress-container {
+        .progress {
             width: 100%;
-            background-color: #e2e8f0;
-            border-radius: 8px;
-            margin-top: 20px;
-            height: 20px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 4px;
+            margin: 16px 0;
             overflow: hidden;
             display: none;
         }
         .progress-bar {
             height: 100%;
-            width: 0%;
-            background-color: var(--primary);
-            border-radius: 8px;
-            transition: width 0.3s ease-in-out;
+            background: var(--primary);
+            border-radius: 4px;
+            width: 0;
+            transition: width 0.4s ease-out;
         }
-        .status-message {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 0.95rem;
-            color: #475569;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
+        .status {
             font-size: 0.85rem;
-            color: #64748b;
-        }
-        .output-metrics {
-            display: flex;
-            justify-content: flex-end;
-            font-size: 0.9rem;
             color: #64748b;
             margin-top: 8px;
-        }
-        .output-metrics span {
-            margin-left: 15px;
-        }
-        #json-output {
-            background-color: #f0f4f8;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-            white-space: pre-wrap;
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-            font-size: 0.85rem;
-            color: #334155;
-            display: none; /* Hidden by default */
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .copy-button {
-            margin-left: 10px;
+            text-align: center;
+            height: 1em;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Humanize Any Text: GPT-100</h1>
-        <p class="disclaimer"><b style="font-size:24px;"></b>
+        <h1 style="font-size:60px;">GPT-100</h1>
+        <p class="disclaimer"><b style="font-size:24px;">Humanize any AI-generated text.</b> <br><br>
               Still in beta development, expect lots of mistakes. 
              <br>May change facts, remove info, etc. ALWAYS CHECK THE RESULT.
-             <br><br><br>
+             <br><br>
              </p>
-
+             
         <div class="controls">
-            <div class="control-group">
-                <label for="input-text">Input AI-Generated Text:</label>
-                <textarea id="input-text" placeholder="Paste your AI-generated text here..."></textarea>
-                <div class="output-metrics">
-                    <span id="input-count">0 words</span>
-                </div>
+            <select id="tone">
+                <option value="professional">Professional</option>
+                <option value="academic">Academic</option>
+                <option value="casual">Casual</option>
+            </select>
+            <div class="toggle">
+                <span>General</span>
+                <input type="checkbox" id="perspective" checked>
+                <span>Personal</span>
             </div>
-            <div class="control-group">
-                <label for="output-text">Humanized Output:</label>
-                <textarea id="output-text" readonly placeholder="Humanized text will appear here..."></textarea>
-                <div class="output-metrics">
-                    <span id="output-count">0 words</span>
+            <button id="process">Humanize Text</button>
+        </div>
+        <div class="areas">
+            <div class="area">
+                <div class="area-header">
+                    <label for="input">Input Text</label>
                 </div>
+                <textarea id="input" placeholder="Paste your AI-generated text here, with paragraphs separated by newlines..."></textarea>
+                <div class="word-count" id="input-count">0 words</div>
+            </div>
+            <div class="area">
+                <div class="area-header" id="area-header-output">
+                    <label for="output">Humanized Output</label>
+                    <button id="copy">Copy</button>
+                </div>
+                <textarea id="output" readonly></textarea>
+                <div class="word-count" id="output-count">0 words</div>
+                <pre id="jsonOutput" style="white-space: pre-wrap; word-wrap: break-word; font-size: 0.8em; background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-top: 10px; display: none;"></pre>
             </div>
         </div>
-
-        <div class="button-group">
-            <button id="process-btn" class="primary">Humanize Text</button>
-            <button id="clear-btn" class="secondary">Clear All</button>
-        </div>
-
-        <div id="progress-container" class="progress-container">
-            <div id="progress-bar" class="progress-bar"></div>
-        </div>
-        <div id="status-message" class="status-message"></div>
-
-        <pre id="json-output"></pre>
-        <button id="copy-json-btn" class="secondary copy-button" style="display: none;">Copy JSON</button>
+        <div class="progress"><div class="progress-bar"></div></div>
+        <div class="status" id="status"></div>
     </div>
-
-    <div class="footer">
-        Powered by Groq API
-    </div>
-
 <script>
+
+    const API_KEY = process.env.AI_Humanizer_API;
+    
+    // Define an array of models to try, in order of preference/fallback
+    // Prioritizing faster, generally good-performing models first.
+    const MODELS_TO_TRY = [
+        'llama-3.1-8b-instant',
+        'llama3-8b-8192',
+        'gemma2-9b-it',
+        'mistral-saba-24b',
+        'llama3-70b-8192',
+        // Fallback to larger or more specialized models if initial ones struggle
+        'meta-llama/llama-4-maverick-17b-128e-instruct',
+        'meta-llama/llama-4-scout-17b-16e-instruct',
+        'meta-llama/llama-guard-4-12b', 
+        'llama-guard-3-8b',
+        'meta-llama/llama-prompt-guard-2-22m',
+        'meta-llama/llama-prompt-guard-2-86m'
+    ];
+
+    // Comprehensive list for external post-processing replacement
+    const FORBIDDEN_WORDS_COMPREHENSIVE = [
+        'exacerbating', 'unequivocal', 'mitigate', 'transcends', 'stark', 'dire', 'exert', 'fortress', 'induce', 
+        'ameliorate', 'socioeconomic', 'culminate', 'imperative', 'formidable', 'subsequently', 'hitherto', 
+        'notwithstanding', 'thereby', 'thus', 'hence', 'whereas', 'moreover', 'furthermore', 'nevertheless', 
+        'notable', 'significant', 'prevalent', 'consequently', 'therefore', 'delineate', 'underscore', 'paramount', 
+        'pivotal', 'crucial', 'comprehensive', 'profound', 'vividly', 'crippled', 'waver', 'confronted', 
+        'debilitating', 'susceptible', 'fluctuations', 'escalates', 'compromising', 'indestructible', 'equitable', 
+        'resilient', 'resolve', 'portrayed', 'vividly', 'curb', 'dictates', 'proactive', 'bleak', 'intergovernmental', 
+        'amplifies', 'consequences', 'rooted', 'excessive', 'emission', 'intensive', 'deforestation', 'shifting', 
+        'frequent', 'torrential', 'downpours', 'crippled', 'terrain', 'biodiversity', 'strive', 'waning', 
+        'outbreaks', 'debilitating', 'respiratory', 'socioeconomic', 'pose', 'considerable', 'susceptible', 
+        'livelihood', 'delicacy', 'vastly', 'climatic', 'fluctuations', 'scarcity', 'alongside', 'triggers', 
+        'migration', 'conflict', 'stability', 'financial', 'burden', 'inaction', 'inevitably', 'incur', 'escalating', 
+        'eclipsing', 'restraints', 'proactive', 'encompass', 'shift', 'optimizing', 're-establishing', 'promoting', 
+        'responsible', 'occupancy', 'crucially', 'cooperation', 'necessary', 'curb', 'pre-industrial', 'strengthening', 
+        'infrastructure', 'resist', 'disasters', 'effective', 'awareness', 'systems', 'agricultural', 'practices', 
+        'conserve', 'resources', 'significantly', 'harmony', 'balanced', 'distribution', 'disadvantaged', 'collective', 
+        'pressing', 'reality', 'combat', 'challenge', 'approached', 'unified', 'international', 'presence', 'rooted', 
+        'solid', 'evidence', 'innovative', 'solutions', 'universal', 'responsibility', 'insurmountable', 'obstacles', 
+        'vast', 'opportunity', 'establish', 'sustainable', 'resilient', 'just', 'current and future generations', 
+        'proactive', 'stance', 'define', 'sustainable', 'return', 'long', 'fragile', 'well-being',
+        'necessitate', 'ecstatic', 'reedeem', 'utilize', 'alterations' // Added 'alterations'
+    ];
+
+    // Smaller, critical list for the AI to focus on in the prompt (common AI-like words)
+    const FORBIDDEN_WORDS_FOR_AI_PROMPT = [
+        'unequivocal', 'mitigate', 'transcends', 'stark', 'dire', 'exert', 'fortress', 
+        'induce', 'ameliorate', 'socioeconomic', 'culminate', 'imperative', 'formidable', 'subsequently', 
+        'hitherto', 'notwithstanding', 'thereby', 'thus', 'hence', 'whereas', 'moreover', 'furthermore', 
+        'nevertheless', 'consequently', 'therefore', 'delineate', 'underscore', 'paramount', 'pivotal', 
+        'crucial', 'comprehensive', 'profound', 'vividly', 'crippled', 'waver', 'confronted', 'debilitating', 
+        'susceptible', 'fluctuations', 'escalates', 'compromising', 'indestructible', 'equitable', 'resilient', 
+        'resolve', 'portrayed', 'vividly', 'curb', 'dictates', 'proactive', 'bleak', 'intergovernmental', 
+        'amplifies', 'consequences', 'rooted', 'excessive', 'emission', 'intensive', 'deforestation', 'shifting', 
+        'frequent', 'torrential', 'downpours', 'crippled', 'terrain', 'biodiversity', 'strive', 'waning', 
+        'outbreaks', 'debilitating', 'respiratory', 'socioeconomic', 'pose', 'considerable', 'susceptible', 
+        'livelihood', 'delicacy', 'vastly', 'climatic', 'fluctuations', 'scarcity', 'alongside', 'triggers', 
+        'migration', 'conflict', 'stability', 'financial', 'burden', 'inaction', 'inevitably', 'incur', 'escalating', 
+        'eclipsing', 'restraints', 'proactive', 'encompass', 'shift', 'optimizing', 're-establishing', 'promoting', 
+        'responsible', 'occupancy', 'crucially', 'cooperation', 'necessary', 'curb', 'pre-industrial', 'strengthening', 
+        'infrastructure', 'resist', 'disasters', 'effective', 'awareness', 'systems', 'agricultural', 'practices', 
+        'conserve', 'resources', 'significantly', 'harmony', 'balanced', 'distribution', 'disadvantaged', 'collective', 
+        'pressing', 'reality', 'combat', 'challenge', 'approached', 'unified', 'international', 'presence', 'rooted', 
+        'solid', 'evidence', 'innovative', 'solutions', 'universal', 'responsibility', 'insurmountable', 'obstacles', 
+        'vast', 'opportunity', 'establish', 'sustainable', 'resilient', 'just', 'current and future generations', 
+        'proactive', 'stance', 'define', 'sustainable', 'return', 'long', 'fragile', 'well-being',
+        'necessitate', 'ecstatic', 'reedeem', 'utilize', 'alterations' // Added 'alterations'
+    ];
+
     const $ = id => document.getElementById(id);
 
-    const inputTextEl = $('input-text');
-    const outputTextEl = $('output-text');
-    const processBtn = $('process-btn');
-    const clearBtn = $('clear-btn');
-    const inputCountEl = $('input-count');
-    const outputCountEl = $('output-count');
-    const progressContainer = $('progress-container');
-    const progressBar = $('progress-bar');
-    const statusEl = $('status-message');
-    const jsonOutputEl = $('json-output');
-    const copyJsonButton = $('copy-json-btn');
-
-    const MAX_SECTION_LENGTH = 1200; // Max characters per section for Groq
-
-    const updateWordCount = () => {
-        const inputWords = inputTextEl.value.trim().match(/\S+/g) || [];
-        inputCountEl.textContent = `${inputWords.length} words`;
-
-        const outputWords = outputTextEl.value.trim().match(/\S+/g) || [];
-        outputCountEl.textContent = `${outputWords.length} words`;
-    };
-
     const init = () => {
-        inputTextEl.addEventListener('input', updateWordCount);
-        outputTextEl.addEventListener('input', updateWordCount); // For dynamic output count
+        const processButton = $('process');
+        if (!processButton) {
+            console.error("Error: 'process' button not found in the DOM. Check its ID in HTML.");
+            return;
+        }
 
-        clearBtn.addEventListener('click', () => {
-            inputTextEl.value = '';
-            outputTextEl.value = '';
-            jsonOutputEl.textContent = '';
-            jsonOutputEl.style.display = 'none';
-            if (copyJsonButton) {
-                copyJsonButton.style.display = 'none';
-            }
-            statusEl.textContent = '';
-            progressContainer.style.display = 'none';
-            progressBar.style.width = '0%';
-            processBtn.disabled = false;
-            processBtn.textContent = 'Humanize Text';
-            updateWordCount();
+        ['input', 'output'].forEach(id => {
+            const el = $(id);
+            const counter = $(`${id}-count`);
+            const updateCount = () => {
+                const words = el.value.trim().match(/\S+/g) || [];
+                counter.textContent = `${words.length} words`;
+            };
+            el.addEventListener('input', updateCount);
+            updateCount();
         });
 
-        processBtn.addEventListener('click', processText);
+        const outputHeaderEl = $('area-header-output'); 
+        if (outputHeaderEl) { 
+            const copyJsonButton = document.createElement('button');
+            copyJsonButton.id = 'copyJson';
+            copyJsonButton.textContent = 'Copy JSON';
+            copyJsonButton.style.marginLeft = '10px';
+            copyJsonButton.style.display = 'none'; 
+            outputHeaderEl.appendChild(copyJsonButton); 
 
-        if (copyJsonButton) {
-            copyJsonButton.addEventListener('click', () => {
-                navigator.clipboard.writeText(jsonOutputEl.textContent).then(() => {
-                    alert('JSON copied to clipboard!');
-                }).catch(err => {
-                    console.error('Failed to copy JSON: ', err);
-                });
+            copyJsonButton.addEventListener('click', async () => {
+                const jsonOutputEl = $('jsonOutput');
+                if (!jsonOutputEl.textContent) return;
+                try {
+                    await navigator.clipboard.writeText(jsonOutputEl.textContent);
+                    copyJsonButton.textContent = 'Copied!';
+                    setTimeout(() => copyJsonButton.textContent = 'Copy JSON', 1500);
+                } catch (err) {
+                    alert('Failed to copy JSON.');
+                }
             });
         }
 
-        updateWordCount(); // Initial count
-    };
-
-    // The API_KEY constant has been removed from here.
-    // It will now be securely accessed in your Vercel serverless function (proxy.js).
-
-    const apiCall = async (prompt, model, customTemperature = 1.0, retryCount = 0) => {
-        // Models list is kept client-side to manage client-side retry logic for different models.
-        const models = [
-            'llama-3.1-8b-instant',
-            'llama3-8b-8192',
-            'gemma2-9b-it',
-            'mistral-saba-24b',
-            'llama3-70b-8192',
-            'meta-llama/llama-4-maverick-17b-128e-instruct',
-            'meta-llama/llama-4-scout-17b-16e-instruct',
-            'meta-llama/llama-guard-4-12b',
-            'llama-guard-3-8b',
-            'meta-llama/llama-prompt-guard-2-22m',
-            'meta-llama/llama-prompt-guard-2-86m'
-        ];
-
-        let modelToUse = model;
-        if (!modelToUse) {
-            // If no specific model is passed (i.e., for initial humanization),
-            // iterate through the predefined models for retries.
-            modelToUse = models[retryCount];
-            if (retryCount >= models.length) {
-                throw new Error('All available models failed to process the request after multiple retries.');
-            }
+        const copyTextButton = $('copy'); 
+        if (copyTextButton) { 
+            copyTextButton.addEventListener('click', async () => {
+                const output = $('output');
+                if (!output.value) return;
+                try {
+                    await navigator.clipboard.writeText(output.value);
+                    copyTextButton.textContent = 'Copied!';
+                    setTimeout(() => copyTextButton.textContent = 'Copy', 1500);
+                } catch (err) {
+                    alert('Failed to copy text.');
+                }
+            });
         }
 
-        console.log(`Attempting API call with model: ${modelToUse} (Temp: ${customTemperature}) - Retry: ${retryCount}`);
+        processButton.addEventListener('click', processText);
+    };
+
+    // Helper to check if text is likely nonsense or contains unexpected AI filler
+    const isNonsense = (text) => {
+        if (!text || text.trim().length < 10) return true; // Too short to be meaningful
+        const words = text.trim().split(/\s+/);
+        // Check for very low word diversity (e.g., lots of repetition)
+        const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+        if (words.length > 20 && uniqueWords.size / words.length < 0.3) return true; // Less than 30% unique words
+        // Check for unusual character patterns (e.g., excessive symbols, very long "words" without spaces)
+        if (/[^a-zA-Z0-9\s.,!?'-]/.test(text)) { // Contains unexpected special characters
+            const unexpectedChars = text.match(/[^a-zA-Z0-9\s.,!?'-]/g);
+            if (unexpectedChars && unexpectedChars.length / text.length > 0.05) return true; // More than 5% non-standard characters
+        }
+        // Check for common AI conversational filler that might slip through sanitize
+        if (/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|in summary|in conclusion)/i.test(text)) return true;
+        
+        // Simple check for lack of proper sentence structure (e.g., no periods for long text)
+        if (words.length > 10 && !/[.!?]/.test(text)) return true;
+
+        return false;
+    };
+
+
+    const sanitizeAIOutput = (text) => {
+        if (!text) return '';
+        let cleanText = text;
+        
+        const prefixes = [
+            "here's the rewritten text:", "here is the rewritten text:", "certainly, here's the revised paragraph:", 
+            "of course, here is the updated version:", "here is your rewritten paragraph:", "rewritten text:", 
+            "your rewritten text:", "here's the rewritten version:", "here's a rewritten version:", 
+            "i have rewritten the text as follows:", "the rewritten text is:", "here you go:",
+            "here's the humanized version:", "here's the humanized text:", "rewritten as requested:",
+            "the text rewritten is:", "rewritten text:", "humanized output:", "output:", "here is the output:",
+            "here's the output:", "i've rewritten the paragraph:", "here is the rewritten output for the section:",
+            "here's the revised content:", "this is the humanized text:", "your humanized text:",
+            "below is the rewritten text:", "i have transformed the text:", "the transformed text is:",
+            "this is your updated section:", "here's your improved text:", "your text, humanized:",
+            "the rewritten text is as follows:", "here's your new text:", "rewriting the text now:", 
+            "i think this is what the user wants:", "the humanized text is:", "here's the humanized output:",
+            "your requested output:", "here is the humanized version of the text:", "here is the updated text:",
+            "i've processed the text:", "this is the revised text:", "the revised text is:", "your text revised:",
+            "here's your text:", "here is your text:",
+            "the urgency of addressing climate change: a pressing human concern", 
+            "the urgency of addressing climate change. a pressing human concern",
+            "the urgency of climate change is a worldwide concern.",
+            "here's the corrected text:", "here's your corrected text:",
+            "alright, here's the rewritten paragraph:", "let me know if you need any further adjustments.",
+            "please note this is only one possible way to rewrite it.", "this is a possible humanized version:",
+            "here's a humanized version of your text:",
+            "the humanized output is:", "here's the humanized output you requested:",
+            "this is the humanized text you asked for:", "i've rewritten the text for you:",
+            "here is the revised text you requested:", "this is the rewritten version of your text:",
+            "here is the humanized version of your provided text:",
+            "your text has been humanized:", "i have humanized the text as follows:",
+            "the humanized text you asked for:", "here is the humanized paragraph:"
+        ];
+        prefixes.sort((a, b) => b.length - a.length);
+
+        for (const prefix of prefixes) {
+            if (cleanText.toLowerCase().startsWith(prefix)) {
+                cleanText = cleanText.substring(prefix.length).trim();
+                break;
+            }
+        }
+        
+        cleanText = cleanText.replace(/^(as requested|here is your text|i've rephrased this for you|this is the rewritten text|this is your rewritten text|here is the rewritten text for the section|here is (the|your) rewritten (text|output)( for the section)?|below is the (rewritten|humanized) text|this is your (updated|improved) text|the rewritten text is as follows|here's your new text|rewriting the text now|i think this is what the user wants|the humanized text is|here's the humanized output|your requested output|here is the humanized version of the text|here is the updated text|i've processed the text|this is the revised text|the revised text is|your text revised|here's your text|here is your text|alright, here's the rewritten paragraph|let me know if you need any further adjustments|please note this is only one possible way to rewrite it|this is a possible humanized version|here's a humanized version of your text|the humanized output is|here's the humanized output you requested|this is the humanized text you asked for|i've rewritten the text for you|here is the revised text you requested|this is the rewritten version of your text|here is the humanized version of your provided text|your text has been humanized|i have humanized the text as follows|the humanized text you asked for|here is the humanized paragraph)\W*\n*/i, '').trim();
+
+        cleanText = cleanText.replace(/^["'`]+|["'`]+$/g, '').trim();
+
+        cleanText = cleanText.replace(/[\u2014\u2013]/g, ' '); 
+
+        // Remove trailing commas before periods/end of sentence
+        cleanText = cleanText.replace(/,(\s*[.!?])/g, '$1');
+        // Remove multiple spaces
+        cleanText = cleanText.replace(/\s{2,}/g, ' ');
+        // Remove any leading/trailing whitespace around sentences
+        cleanText = cleanText.replace(/\s*([.!?])\s*/g, '$1 ').trim();
+        cleanText = cleanText.replace(/\s*,\s*/g, ', '); // Standardize comma spacing
+
+        return cleanText;
+    };
+
+    const enforceForbiddenWords = (text) => {
+        let cleanText = text;
+        FORBIDDEN_WORDS_COMPREHENSIVE.forEach(word => {
+            const regex = new RegExp(`\\b${word}\\b`, 'gi');
+            cleanText = cleanText.replace(regex, `[REPLACED WORD: ${word.toUpperCase()}]`); 
+        });
+        return cleanText;
+    };
+
+
+    const apiCall = async (prompt, modelIndex = 0, customTemperature = 1.9, retryCount = 0) => {
+        if (modelIndex >= MODELS_TO_TRY.length) {
+            throw new Error('All available models failed to process the request after multiple retries.');
+        }
+
+        const currentModel = MODELS_TO_TRY[modelIndex];
+        console.log(`Attempting API call with model: ${currentModel} (Temp: ${customTemperature}) - Retry: ${retryCount}`);
 
         try {
-            // *** IMPORTANT: Fetch request now points to your backend proxy.js ***
-            const response = await fetch('/api/proxy', {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${API_KEY}`
                 },
                 body: JSON.stringify({
-                    prompt: prompt,
-                    model: modelToUse,
-                    temperature: customTemperature,
+                    model: currentModel,
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: customTemperature, 
                     top_p: 0.98,
-                    max_tokens: 2048
+                    max_tokens: 2048,
                 })
             });
 
             if (!response.ok) {
-                const errorBody = await response.json();
-                console.error(`Local API call failed for model ${modelToUse}: HTTP Status ${response.status} - ${response.statusText}`, errorBody);
+                const errorBody = await response.text();
+                console.error(`API call failed for model ${currentModel}: HTTP Status ${response.status} - ${response.statusText}`, errorBody);
 
-                // Handle retries and model fallback based on backend response or network issues
-                if ((response.status >= 500 || response.status === 429 || (response.status === 400 && errorBody?.details?.message?.includes("context length exceeded"))) && retryCount < 2) {
-                    console.warn(`Retrying local API call for model ${modelToUse} due to server/rate limit/token error...`);
-                    await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
-                    return apiCall(prompt, model, customTemperature, retryCount + 1); // Retry with the same model (or null)
-                } else if (response.status !== 200 && model === null && retryCount < models.length - 1) {
-                     // Fallback to next model if initial humanization (model is null) failed
-                     console.warn(`Falling back to next model for humanization...`);
-                     return apiCall(prompt, null, customTemperature, retryCount + 1); // Pass null to try next model in sequence
+                if (response.status === 400 && errorBody.includes("maximum context length exceeded")) {
+                    console.warn(`Token limit hit for model ${currentModel}. Trying next model...`);
+                    return apiCall(prompt, modelIndex + 1, customTemperature, 0); 
+                } else if (response.status === 429) {
+                    console.warn(`Rate limit hit for model ${currentModel}. Waiting and trying next model...`);
+                    await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
+                    return apiCall(prompt, modelIndex + 1, customTemperature, 0); 
+                } else if (response.status >= 500 || response.status === 404 || response.status === 403) { // Server errors, forbidden, not found
+                    if (retryCount < 2) { 
+                        console.warn(`Retrying model ${currentModel} due to server/network error...`);
+                        await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1))); 
+                        return apiCall(prompt, modelIndex, customTemperature, retryCount + 1);
+                    } else {
+                        console.warn(`Max retries for model ${currentModel}. Trying next model...`);
+                        return apiCall(prompt, modelIndex + 1, customTemperature, 0);
+                    }
+                } else {
+                    console.warn(`Client error with model ${currentModel}. Trying next model...`);
+                    return apiCall(prompt, modelIndex + 1, customTemperature, 0);
                 }
-                throw new Error(errorBody.message || 'Failed to process request');
             }
             const data = await response.json();
             const content = data.choices?.[0]?.message?.content.trim() || null;
-            return content;
+            return content; 
 
-        } catch (error) {
-            console.error(`Error during local API call with model ${modelToUse}:`, error);
-            // General network/client-side error retry
-            if (retryCount < 2 && model === null) {
-                console.warn(`Retrying local API call due to network/general error...`);
+        } catch (error) { 
+            console.error(`Error during API call with model ${currentModel}:`, error);
+            if (retryCount < 2) {
+                console.warn(`Retrying model ${currentModel} due to network/general error...`);
                 await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
-                return apiCall(prompt, null, customTemperature, retryCount + 1);
+                return apiCall(prompt, modelIndex, customTemperature, retryCount + 1);
+            } else {
+                console.warn(`Max retries for model ${currentModel}. Trying next model...`);
+                return apiCall(prompt, modelIndex + 1, customTemperature, 0);
             }
-            throw error;
         }
     };
 
+    const analyzeSectionForPatterns = (section) => {
+        const issues = {
+            hasParticipialPhrase: false,
+            participialExamples: [],
+            hasPredictableStart: false,
+            predictableStartExamples: [],
+            hasColonsOrSemicolons: false
+        };
+
+        const participialRegex = /(\b\w+(?:ing|ed|en)\b(?:(?:\s\w+)*?\s\w+)?)(?=\s|,|\.|$)/gi;
+        let match;
+        const sentences = section.match(/[^.!?]+[.!?]*/g) || [section];
+        sentences.forEach(sentence => {
+            while ((match = participialRegex.exec(sentence)) !== null) {
+                const potentialPhrase = match[1].trim();
+                if (potentialPhrase.length > 3 && 
+                    !/^\b(?:is|are|was|were|has|have|had)\s/.test(sentence.substring(Math.max(0, match.index - 5), match.index)) &&
+                    !/^\b(?:the|a|an)\s\w+(?:ing|ed|en)\b/.test(potentialPhrase.toLowerCase())) 
+                {
+                    issues.hasParticipialPhrase = true;
+                    if (potentialPhrase && !issues.participialExamples.includes(potentialPhrase)) {
+                        issues.participialExamples.push(`"${potentialPhrase.replace(/,$/, '')}"`);
+                    }
+                }
+            }
+        });
+        
+        const predictableStarts = [
+            /^The world is/, /^Our planet/, /^Every year the earth/, /^Climate change is making things/, /^It is worth noting/, /^The key factor/, /^Rising global temperatures/, /^The dire economic effects/, /^Strategies for Mitigation and Adaptation/, /^Climate change is a harsh reality/,
+            /^It is important to note/, /^In conclusion/, /^Furthermore/, /^Moreover/, /^However/, /^Therefore/, /^Thus/, /^The fact that/, /^In order to/, /^Ultimately/, /^Despite the fact that/, /^With the rise of/, /^As a result of/, /^Given that/, /^This means/, /^It affects/, /^There are some people/, /^Individuals, governments, and international partnerships/, /^Climate change remains/, /^The causes of climate change are rooted in/, /^Effects of a Shifting Planet/, /^Socioeconomic impacts of climate change exert/, /^Combating climate change demands/, /^Immediate action is demanded to combat/,
+            /^In essence/, /^What's more/, /^On the other hand/, /^Concurrently/, /^Subsequently/, /^In particular/, /^It is essential/, /^It is crucial/, /^It is clear that/, /^To summarize/, /^In summary/, /^In a nutshell/, /^Basically/, /^The reason is/, /^The problem is/, /^It's important to understand/, /^It's crucial to acknowledge/, /^One of the main challenges/, /^This article discusses/, /^The primary objective/, /^The study found that/, /^Data suggests that/, /^In light of these findings/, /^The implications of this/, /^It is evident that/, /^Ultimately, the goal is/, /^Addressing these issues/, /^Looking ahead,/
+        ];
+        sentences.forEach(sentence => {
+            const trimmedSentence = sentence.trim();
+            for (const start of predictableStarts) {
+                if (start.test(trimmedSentence)) {
+                    issues.hasPredictableStart = true;
+                    const example = trimmedSentence.split(' ').slice(0, 5).join(' ') + '...';
+                    if (!issues.predictableStartExamples.includes(example)) {
+                        issues.predictableStartExamples.push(`"${example}"`);
+                    }
+                    break; 
+                }
+            }
+        });
+
+        if (/[;:]/.test(section)) {
+            issues.hasColonsOrSemicolons = true;
+        }
+
+        return issues;
+    };
+
+
+    const buildComprehensivePrompt = (section, tone, isPersonal, pastParaphrases, sectionAnalysis) => {
+        const toneInstruction = `Maintain a ${tone} tone${isPersonal ? ' using a first-person perspective (e.g., "I believe," "we must," "our responsibility").' : ' using a general, objective, and neutral perspective.'}`;
+        
+        let contextInstruction = '';
+        if (pastParaphrases && pastParaphrases.length > 0) {
+            const recentParaphrases = pastParaphrases.slice(-3); 
+            contextInstruction = `
+        **PREVIOUS CONTEXT AND STYLE (for flow only):**
+        Previous humanized text sections: "${recentParaphrases.join('\n\n')}"
+        Ensure the new section flows naturally from these. **DO NOT** reuse specific phrasing or sentence structures. Use *fresh synonyms* and *novel sentence constructions*.`;
+        }
+
+        let specificRefinementInstruction = '';
+        if (sectionAnalysis.hasParticipialPhrase && sectionAnalysis.participialExamples.length > 0) {
+            specificRefinementInstruction += `
+            * **ABSOLUTELY RESTRUCTURE AND ELIMINATE ALL PARTICIPIAL PHRASES.** This is a critical requirement. Rewrite phrases like ${sectionAnalysis.participialExamples.join(', ')} as full, independent clauses or by splitting the original sentence into two or more clearer sentences. For example, instead of "The man, *walking quickly*, tripped," write "The man walked quickly and then he tripped," or "The man was walking quickly. He tripped."`;
+        }
+        if (sectionAnalysis.hasPredictableStart && sectionAnalysis.predictableStartExamples.length > 0) {
+            specificRefinementInstruction += `
+            * **VARY SENTENCE BEGINNINGS.** Avoid predictable starts like ${sectionAnalysis.predictableStartExamples.join(', ')}. Make every sentence start differently.`;
+        }
+        if (specificRefinementInstruction) {
+             specificRefinementInstruction = `\n        **SECTION-SPECIFIC REFINEMENTS:**` + specificRefinementInstruction;
+        }
+
+        const originalWordCount = section.trim().split(/\s+/).length;
+        // Adjusted target word count range to be stricter and explicit
+        const targetMinWords = Math.round(originalWordCount * 0.90); // Stricter range
+        const targetMaxWords = Math.round(originalWordCount * 1.10); // Stricter range
+
+        const keywordsAndProperNounsToRetain = [
+            'climate change', 'humanity', '21st century', 'temperature', 'precipitation', 
+            'wind patterns', 'Earth\'s climate system', 'anthropogenic activities', 'greenhouse gases', 
+            'industrial processes', 'transportation', 'deforestation', 'scientific consensus', 
+            'human influence', 'global climate', 'catastrophic consequences', 'ecosystems', 'economies', 
+            'societies', 'global warming', 'sea levels', 'extreme weather events', 'carbon dioxide (CO₂)',
+            'methane (CH₄)', 'nitrous oxide (N₂O)', 'fossil fuels', 'renewable energy', 'biodiversity', 'natural resources', 'public health',
+            'policy frameworks', 'international cooperation', 'sustainable development', 'mitigation',
+            'adaptation', 'economic impacts', 'social equity', 'IPCC', 'Paris Agreement', 
+            'heatwaves', 'droughts', 'hurricanes', 'floods', 'polar ice caps', 'glaciers', 'coastal communities',
+            'small island nations', 'vector-borne diseases', 'respiratory issues', 'food insecurity',
+            'vulnerable populations', 'developing countries', 'agricultural practices', 'land-use changes',
+            'global stability', 'security', 'economic cost of inaction', 'preventive measures',
+            'energy efficiency', 'reforestation', 'sustainable land use', 'resilient infrastructure',
+            'early warning systems', 'climate-smart agriculture', 'political will', 'public engagement',
+            'equitable resource distribution', 'present reality', 'unified global response', 'science', 'innovation',
+            'moral responsibility', 'sustainable', 'resilient', 'just world', 'current and future generations',
+            'combustion', 'United Nations Intergovernmental Panel' // Added specifically from the new input
+        ];
+        
+        let keywordInstruction = `
+        **CRITICAL: PRESERVE ALL ORIGINAL MEANING AND FACTS EXACTLY.** The humanized text MUST convey the IDENTICAL message as the original, rephrased. Keep all core details, proper nouns (e.g., "IPCC," "Paris Agreement," specific gas names like "CO₂"), and key concepts. **DO NOT simplify or alter specific technical terms or proper nouns unless explicitly instructed by the forbidden words list, or if the original is grammatically incorrect.**`;
+
+        return `**GOLDEN RULE: DO NOT, under ANY circumstances, introduce ANY information, facts, or concepts not EXPLICITLY present in the "TEXT TO REWRITE" section below. Your output must be a pure rephrasing of the provided text, and nothing more. This is a STRICT information-preservation task, not an information-generation task. Do not make up any new details or draw on any outside knowledge.**
+
+        Your sole response MUST be the rewritten text for the provided section. NO commentary, NO intros, NO filler, NO questions, NO conversational phrases like "here's the rewritten text".
+
+        **TEXT TO REWRITE (ONE SINGLE SECTION/PARAGRAPH):**
+        "${section}"
+
+        **MANDATORY RULES (STRICTLY ADHERE TO THESE):**
+
+        1.  **SIMPLIFY WORDS AND COMPLETELY RESTRUCTURE SENTENCES.** Use plain, everyday language. Avoid unnecessary complex vocabulary or jargon.
+            **ABSOLUTELY DO NOT USE ANY OF THESE WORDS (find direct, simpler synonyms, or restructure the sentence completely):** ${FORBIDDEN_WORDS_FOR_AI_PROMPT.map(w => `'${w}'`).join(', ')}.
+            **Example for forbidden word "transcends":** Instead of "This issue transcends boundaries," write "This issue goes beyond borders," or "This issue affects areas outside of typical limits."
+            **CRITICAL:** If a simpler, clear synonym cannot be found for a word on the forbidden list, or if replacing it makes the sentence unclear or nonsensical, or if it leads to gibberish, **RETAIN THE ORIGINAL WORD and try to restructure the sentence differently.** Prioritize clarity and meaning above all else. **DO NOT generate random or nonsensical text. The output must be coherent and grammatically sound.**
+
+        2.  **STRICT WORD COUNT & CONTENT INTEGRITY.** Output for this section MUST be between **${targetMinWords} and ${targetMaxWords} words** (within +/- 10% of original ${originalWordCount} words). **DO NOT add new sentences, remove original sentences, or introduce any new information.** The rewritten text **MUST** contain the exact same number of core facts, ideas, and pieces of information as the original. Focus purely on rephrasing the existing content.
+
+        3.  **PUNCTUATION AND TRANSITIONS.** **USE ONLY CONVENTIONAL PUNCTUATION: PERIODS (.), COMMAS (,), EXCLAMATION MARKS (!), AND QUESTION MARKS (?). ABSOLUTELY NO COLONS (:) OR SEMICOLONS (;).** **Use transition words and phrases SPARINGLY and NATURALLY, only when necessary for coherence. AVOID excessive use of commas to link unrelated clauses or ideas that should be separate sentences. Focus on clear, concise sentence structures.**
+
+        ${specificRefinementInstruction}
+
+        ${keywordInstruction}
+
+        4.  **SINGLE PARAGRAPH OUTPUT.** The output for THIS specific section MUST be a single, continuous paragraph with NO newlines or extra spaces that create new paragraphs within it. **DO NOT introduce new information or random text.** Prioritize clear, coherent meaning.
+
+        5.  **TONE.** ${toneInstruction}
+
+        ${contextInstruction}
+
+        **Your response MUST be ONLY the rewritten text for this single section, nothing else.**`;
+    };
+
+
+    // Prompt for individual section review (now applied to each section after initial humanization)
+    const buildIndividualSectionReviewPrompt = (sectionText) => {
+        return `**GOLDEN RULE: DO NOT, under ANY circumstances, introduce ANY information, facts, or concepts not EXPLICITLY present in the "TEXT TO REVIEW" section below. Your output must be a pure rephrasing of the provided text, and nothing more. This is a STRICT information-preservation task, not an information-generation task. Do not make up any new details or draw on any outside knowledge.**
+
+        You are an expert copy editor. Review the provided single paragraph ONLY for the following issues. **Your only output must be the corrected text, with no additional commentary or explanation.**
+
+        **STRICT CORRECTIONS ONLY for this single paragraph:**
+        * **COHERENCE AND GRAMMAR:** Ensure the text is perfectly coherent, grammatically correct, and makes complete sense. **DO NOT generate random or nonsensical text.** If the text is fundamentally incoherent, try to make it coherent while retaining its original meaning and *only* the information originally present.
+        * **CONVENTIONAL PUNCTUATION ONLY:** Replace **ALL colons (:) and semicolons (;)** with appropriate conventional punctuation (periods, commas, question marks, exclamation marks). Ensure all other punctuation is standard and correctly used.
+        * **ELIMINATE ALL PARTICIPIAL PHRASES:** Identify and rewrite *every single participial phrase* (e.g., "walking quickly," "being seen," "having done") into clear, full clauses or by splitting sentences. This is a top priority.
+        * **REMOVE ALL AI COMMENTS/CONVERSATIONAL FILLER:** Ensure there are absolutely no introductory phrases, conversational remarks, questions to the user, or anything that resembles AI interaction (e.g., "Here is the text," "I can help with that," "Let me know"). The output must be the pure, clean text.
+        * **NO MEANING CHANGE:** Do not change the original meaning, facts, or core information.
+        * **NO WORD CHOICE CHANGE (unless directly related to punctuation/grammar fix or specifically from the forbidden list if it slipped through):** Do not re-humanize or rephrase sentences beyond fixing the punctuation/participial issues. Only change words if it's a direct grammatical correction, spelling error, or if a forbidden word (from the \`FORBIDDEN_WORDS_COMPREHENSIVE\` list) somehow slipped into the output.
+        * **NO LENGTH CHANGE:** Do not significantly change the length of the text.
+        * **SINGLE PARAGRAPH OUTPUT:** The output MUST remain a single paragraph. DO NOT introduce newlines or merge with other (non-existent) paragraphs.
+
+        **TEXT TO REVIEW (SINGLE PARAGRAPH):**
+        "${sectionText}"
+
+        **FINAL OUTPUT (SINGLE PARAGRAPH):** ONLY the corrected text, with no preamble or commentary.`;
+    };
+
+
     const processText = async () => {
-        const inputText = inputTextEl.value.trim();
-        if (!inputText) {
+        const text = $('input').value.trim();
+        if (!text) {
             alert('Please enter text to humanize.');
             return;
         }
+
+        const processBtn = $('process');
+        const progressContainer = document.querySelector('.progress');
+        const progressBar = document.querySelector('.progress-bar');
+        const statusEl = $('status');
+        const outputEl = $('output');
+        const jsonOutputEl = $('jsonOutput');
+        const copyJsonButton = $('copyJson'); 
 
         processBtn.disabled = true;
         processBtn.textContent = 'Processing...';
         progressContainer.style.display = 'block';
         progressBar.style.width = '0%';
-        statusEl.textContent = 'Splitting text into sections...';
+        statusEl.textContent = 'Initializing...';
+        outputEl.value = '';
         jsonOutputEl.textContent = '';
         jsonOutputEl.style.display = 'none';
-        if (copyJsonButton) {
+        if (copyJsonButton) { 
             copyJsonButton.style.display = 'none';
         }
-
+        
         try {
-            const rawSectionsArray = [];
-            let currentSection = '';
-            const paragraphs = inputText.split(/\n\n+/); // Split by one or more blank lines
+            const tone = $('tone').value;
+            const isPersonal = $('perspective').checked; 
+            console.log("Is Personal Mode:", isPersonal);
 
-            for (const para of paragraphs) {
-                if ((currentSection + para).length > MAX_SECTION_LENGTH && currentSection !== '') {
-                    rawSectionsArray.push(currentSection.trim());
-                    currentSection = para + '\n\n';
-                } else {
-                    currentSection += para + '\n\n';
-                }
+            const rawSectionsArray = text.split(/\n\s*\n+/).filter(s => s.trim());
+            if (rawSectionsArray.length === 0) {
+                statusEl.textContent = 'No valid text sections found.';
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    processBtn.disabled = false;
+                    processBtn.textContent = 'Humanize Text';
+                    statusEl.textContent = '';
+                }, 1000);
+                return;
             }
-            if (currentSection !== '') {
-                rawSectionsArray.push(currentSection.trim());
-            }
+            
+            const originalInputDict = {};
+            rawSectionsArray.forEach((content, index) => {
+                originalInputDict[`section_${index + 1}`] = content;
+            });
 
-            console.log('Original sections:', rawSectionsArray);
-            statusEl.textContent = `Processing ${rawSectionsArray.length} sections...`;
-
-            const humanizedOutputDict = {};
-            const finalHumanizedSections = [];
+            const humanizedOutputDict = {}; 
+            const finalHumanizedSections = []; 
 
             for (let i = 0; i < rawSectionsArray.length; i++) {
-                const section = rawSectionsArray[i];
-                statusEl.textContent = `Humanizing section ${i + 1}/${rawSectionsArray.length}...`;
-                console.log(`Humanizing section ${i + 1}:`, section);
+                const sectionKey = `section_${i + 1}`;
+                const originalSectionContent = rawSectionsArray[i]; // This is correctly defined here
 
-                let humanizedContent;
-
-                // Attempt 1: Standard Humanization
-                const humanizePrompt = `Humanize the following AI-generated text, making it sound natural, engaging, and unique. Avoid common AI phrases, repetitive structures, and overly formal language. Focus on flow, variety in sentence structure, and authentic expression. Ensure the core meaning is preserved. Return only the humanized text, nothing else:\n\n"${section}"`;
-                humanizedContent = await apiCall(humanizePrompt, null, 1.0); // Pass null to let apiCall select model
-
-                if (!humanizedContent || humanizedContent.toLowerCase().includes("as an ai model") || humanizedContent.length < section.length * 0.7) {
-                    console.warn(`Section ${i + 1} - Initial humanization failed or was short. Retrying with higher temperature.`);
-                    statusEl.textContent = `Retrying section ${i + 1} with higher temperature...`;
-                    humanizedContent = await apiCall(humanizePrompt, null, 0.7); // Pass null to let apiCall select model
+                statusEl.textContent = `Humanizing section ${i + 1} of ${rawSectionsArray.length}...`;
+                
+                const pastParaphrases = finalHumanizedSections; 
+                
+                const sectionAnalysis = analyzeSectionForPatterns(originalSectionContent);
+                const humanizePrompt = buildComprehensivePrompt(originalSectionContent, tone, isPersonal, pastParaphrases, sectionAnalysis);
+                
+                let humanizedContent = null;
+                try {
+                    humanizedContent = await apiCall(humanizePrompt, 0, 1.9); 
+                } catch (apiError) {
+                    console.error(`Initial humanization API call failed for section ${i + 1}:`, apiError);
                 }
 
-                if (!humanizedContent) {
-                    humanizedContent = `[Failed to humanize this section: "${section.substring(0, 100)}..."]`;
+                // If humanization fails or is nonsense, try again with a slightly lower temperature
+                if (!humanizedContent || isNonsense(humanizedContent)) {
+                    console.warn(`Initial humanization for section ${i + 1} failed/nonsense. Retrying...`);
+                    statusEl.textContent = `Retrying humanization for section ${i + 1}...`;
+                    try {
+                        humanizedContent = await apiCall(humanizePrompt, 0, 1.0); // Lower temp for retry
+                        if (isNonsense(humanizedContent)) {
+                             console.warn(`Second humanization attempt for section ${i + 1} also failed/nonsense. Using original content.`);
+                             humanizedContent = originalSectionContent;
+                        }
+                    } catch (retryError) {
+                        console.error(`Retry humanization API call failed for section ${i + 1}:`, retryError);
+                        humanizedContent = originalSectionContent; 
+                    }
+                }
+                
+                humanizedContent = sanitizeAIOutput(humanizedContent);
+                humanizedContent = enforceForbiddenWords(humanizedContent); // Post-process forbidden words
+
+                // Individual review for each section immediately after humanization
+                statusEl.textContent = `Reviewing section ${i + 1} for punctuation and style...`;
+                const reviewPrompt = buildIndividualSectionReviewPrompt(humanizedContent);
+                let reviewedContent = null;
+                try {
+                    reviewedContent = await apiCall(reviewPrompt, 0, 0.1); 
+                } catch (reviewApiError) {
+                    console.error(`Individual review API call failed for section ${i + 1}:`, reviewApiError);
                 }
 
-                humanizedOutputDict[`section_${i + 1}_original`] = section;
-                humanizedOutputDict[`section_${i + 1}_humanized_initial`] = humanizedContent;
-                finalHumanizedSections.push(humanizedContent); // Add to final list
-
-                // Optional: Review and Refine (can be a separate step or integrated)
-                statusEl.textContent = `Reviewing humanized section ${i + 1}/${rawSectionsArray.length}...`;
-                const reviewPrompt = `Review the following text for any signs of AI-generated patterns, stiffness, or unnatural phrasing. If detected, subtly rewrite only the problematic parts to make it sound more fluid, natural, and genuinely human. Focus on sentence variety, authentic tone, and engaging expression. Ensure the core meaning is preserved. If it already sounds human, return the text unchanged. Return only the revised text, nothing else:\n\n"${humanizedContent}"`;
-                const reviewedContent = await apiCall(reviewPrompt, 'llama3-8b-8192', 0.1); // Use a specific, more stable model for review
-                if (reviewedContent) {
-                    humanizedOutputDict[`section_${i + 1}_humanized_reviewed`] = reviewedContent;
-                    finalHumanizedSections[i] = reviewedContent; // Update with reviewed content
+                if (!reviewedContent || isNonsense(reviewedContent)) {
+                    console.warn(`Individual review for section ${i + 1} failed/nonsense. Using prior humanized content.`);
+                    reviewedContent = humanizedContent; 
                 } else {
-                    humanizedOutputDict[`section_${i + 1}_humanized_reviewed`] = "Review failed, using initial humanized content.";
+                    reviewedContent = sanitizeAIOutput(reviewedContent); 
                 }
+                
+                humanizedOutputDict[sectionKey] = reviewedContent; 
+                finalHumanizedSections.push(reviewedContent); 
+
+                outputEl.value = finalHumanizedSections.join('\n\n'); 
+                const words = outputEl.value.trim().match(/\S+/g) || [];
+                $('output-count').textContent = `${words.length} words`;
 
                 progressBar.style.width = `${Math.round(((i + 1) / rawSectionsArray.length) * 100)}%`;
             }
-
-            // Final review of the entire combined text (optional, but good for overall cohesion)
-            statusEl.textContent = 'Performing a final coherence and tone review...';
-            const combinedHumanizedText = finalHumanizedSections.join('\n\n');
-            const finalReviewPrompt = `Read the following entire text for overall coherence, natural flow, and consistency in human-like tone. Make any final subtle adjustments to improve its authenticity, readability, and engagement. Avoid introducing errors. Return only the revised text, nothing else:\n\n"${combinedHumanizedText}"`;
-            const finalOutputText = await apiCall(finalReviewPrompt, 'llama3-8b-8192', 0.2); // Use a specific, more stable model for final review
-
-            if (finalOutputText) {
-                humanizedOutputDict.final_humanized_text = finalOutputText;
-                outputTextEl.value = finalOutputText; // Corrected variable to outputTextEl
-            } else {
-                humanizedOutputDict.final_humanized_text = combinedHumanizedText;
-                outputTextEl.value = combinedHumanizedText; // Fallback if final review fails, corrected variable
-            }
-
+            
             statusEl.textContent = 'All sections processed and reviewed. Assembling final output.';
             progressBar.style.width = '100%';
 
-            outputTextEl.value = finalHumanizedSections.join('\n\n'); // Ensures the final joined text is in the output textarea
+            outputEl.value = finalHumanizedSections.join('\n\n');
 
-            const finalWords = outputTextEl.value.trim().match(/\S+/g) || [];
+            const finalWords = outputEl.value.trim().match(/\S+/g) || [];
             $('output-count').textContent = `${finalWords.length} words`;
 
             jsonOutputEl.textContent = JSON.stringify(humanizedOutputDict, null, 2);
             jsonOutputEl.style.display = 'block';
-            if (copyJsonButton) {
+            if (copyJsonButton) { 
                 copyJsonButton.style.display = 'inline-block';
             }
             statusEl.textContent = 'Humanization complete!';
 
         } catch (error) {
-            outputTextEl.value = `Error: ${error.message}`;
+            outputEl.value = `Error: ${error.message}`;
             statusEl.textContent = `Failed: ${error.message.substring(0, 100)}...`;
             console.error('Processing error details:', error);
         } finally {
