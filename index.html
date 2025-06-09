@@ -450,9 +450,9 @@
         max_tokens: 2048,
       }),
     });
+    const data = await response.json();
     if (!response.ok) {
-      const errorBody = await response.text();
-      if (response.status === 400 && errorBody.includes("maximum context length")) {
+      if (data.error.includes('maximum context length')) {
         return apiCall(prompt, modelIndex + 1, customTemperature, 0);
       } else if (response.status === 429) {
         await new Promise(resolve => setTimeout(resolve, 3000));
@@ -464,9 +464,8 @@
         }
         return apiCall(prompt, modelIndex + 1, customTemperature, 0);
       }
-      return apiCall(prompt, modelIndex + 1, customTemperature, 0);
+      throw new Error(data.error || 'API request failed');
     }
-    const data = await response.json();
     return data.choices?.[0]?.message?.content.trim() || null;
   } catch (error) {
     if (retryCount < 2) {
