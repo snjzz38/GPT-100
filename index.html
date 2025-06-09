@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Advanced AI Text Humanizer</title>
+    <title>Humanize Any Text: GPT-100</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -161,11 +161,12 @@
 </head>
 <body>
     <div class="container">
-        <h1>Advanced AI Text Humanizer</h1>
-        <p class="disclaimer">
-            This tool rewrites AI-generated text to sound more human, avoiding AI detection.
-            Please use responsibly and ensure the output maintains factual accuracy.
-        </p>
+        <h1>Humanize Any Text: GPT-100</h1>
+        <p class="disclaimer"><b style="font-size:24px;"></b>
+              Still in beta development, expect lots of mistakes. 
+             <br>May change facts, remove info, etc. ALWAYS CHECK THE RESULT.
+             <br><br><br>
+             </p>
 
         <div class="controls">
             <div class="control-group">
@@ -262,10 +263,11 @@
         updateWordCount(); // Initial count
     };
 
-    // Removed API_KEY constant and MODELS_TO_TRY array from here.
-    // They are now handled in the backend /api/humanize.js
+    // The API_KEY constant has been removed from here.
+    // It will now be securely accessed in your Vercel serverless function (proxy.js).
 
     const apiCall = async (prompt, model, customTemperature = 1.0, retryCount = 0) => {
+        // Models list is kept client-side to manage client-side retry logic for different models.
         const models = [
             'llama-3.1-8b-instant',
             'llama3-8b-8192',
@@ -280,11 +282,11 @@
             'meta-llama/llama-prompt-guard-2-86m'
         ];
 
-        // If a specific model is requested (e.g., for review prompts), use it first.
-        // Otherwise, iterate through models for humanization.
         let modelToUse = model;
         if (!modelToUse) {
-            modelToUse = models[retryCount]; // For initial humanization, iterate through models
+            // If no specific model is passed (i.e., for initial humanization),
+            // iterate through the predefined models for retries.
+            modelToUse = models[retryCount];
             if (retryCount >= models.length) {
                 throw new Error('All available models failed to process the request after multiple retries.');
             }
@@ -293,7 +295,8 @@
         console.log(`Attempting API call with model: ${modelToUse} (Temp: ${customTemperature}) - Retry: ${retryCount}`);
 
         try {
-            const response = await fetch('/api/humanize', { // Call your local Vercel API endpoint
+            // *** IMPORTANT: Fetch request now points to your backend proxy.js ***
+            const response = await fetch('/api/proxy', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -302,25 +305,26 @@
                     prompt: prompt,
                     model: modelToUse,
                     temperature: customTemperature,
-                    top_p: 0.98, // These can be passed to backend if dynamic, or set there
+                    top_p: 0.98,
                     max_tokens: 2048
                 })
             });
 
             if (!response.ok) {
-                const errorBody = await response.json(); // Assuming your backend sends JSON errors
+                const errorBody = await response.json();
                 console.error(`Local API call failed for model ${modelToUse}: HTTP Status ${response.status} - ${response.statusText}`, errorBody);
 
                 // Handle retries and model fallback based on backend response or network issues
-                if ((response.status >= 500 || response.status === 429 || response.status === 400 && errorBody?.details?.message?.includes("context length exceeded")) && retryCount < 2) {
+                if ((response.status >= 500 || response.status === 429 || (response.status === 400 && errorBody?.details?.message?.includes("context length exceeded"))) && retryCount < 2) {
                     console.warn(`Retrying local API call for model ${modelToUse} due to server/rate limit/token error...`);
                     await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
-                    return apiCall(prompt, model, customTemperature, retryCount + 1);
-                } else if (response.status !== 200 && model === null && retryCount < models.length - 1) { // Only fallback for initial humanization (model is null)
+                    return apiCall(prompt, model, customTemperature, retryCount + 1); // Retry with the same model (or null)
+                } else if (response.status !== 200 && model === null && retryCount < models.length - 1) {
+                     // Fallback to next model if initial humanization (model is null) failed
                      console.warn(`Falling back to next model for humanization...`);
-                     return apiCall(prompt, null, customTemperature, retryCount + 1); // Pass null for model to iterate
+                     return apiCall(prompt, null, customTemperature, retryCount + 1); // Pass null to try next model in sequence
                 }
-                 throw new Error(errorBody.message || 'Failed to process request');
+                throw new Error(errorBody.message || 'Failed to process request');
             }
             const data = await response.json();
             const content = data.choices?.[0]?.message?.content.trim() || null;
@@ -328,10 +332,11 @@
 
         } catch (error) {
             console.error(`Error during local API call with model ${modelToUse}:`, error);
-            if (retryCount < 2 && model === null) { // Only retry for initial humanization (model is null)
+            // General network/client-side error retry
+            if (retryCount < 2 && model === null) {
                 console.warn(`Retrying local API call due to network/general error...`);
                 await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
-                return apiCall(prompt, null, customTemperature, retryCount + 1); // Pass null for model to iterate
+                return apiCall(prompt, null, customTemperature, retryCount + 1);
             }
             throw error;
         }
@@ -425,19 +430,18 @@
 
             if (finalOutputText) {
                 humanizedOutputDict.final_humanized_text = finalOutputText;
-                outputEl.value = finalOutputText;
+                outputTextEl.value = finalOutputText; // Corrected variable to outputTextEl
             } else {
                 humanizedOutputDict.final_humanized_text = combinedHumanizedText;
-                outputEl.value = combinedHumanizedText; // Fallback if final review fails
+                outputTextEl.value = combinedHumanizedText; // Fallback if final review fails, corrected variable
             }
-
 
             statusEl.textContent = 'All sections processed and reviewed. Assembling final output.';
             progressBar.style.width = '100%';
 
-            outputEl.value = finalHumanizedSections.join('\n\n');
+            outputTextEl.value = finalHumanizedSections.join('\n\n'); // Ensures the final joined text is in the output textarea
 
-            const finalWords = outputEl.value.trim().match(/\S+/g) || [];
+            const finalWords = outputTextEl.value.trim().match(/\S+/g) || [];
             $('output-count').textContent = `${finalWords.length} words`;
 
             jsonOutputEl.textContent = JSON.stringify(humanizedOutputDict, null, 2);
@@ -448,7 +452,7 @@
             statusEl.textContent = 'Humanization complete!';
 
         } catch (error) {
-            outputEl.value = `Error: ${error.message}`;
+            outputTextEl.value = `Error: ${error.message}`;
             statusEl.textContent = `Failed: ${error.message.substring(0, 100)}...`;
             console.error('Processing error details:', error);
         } finally {
