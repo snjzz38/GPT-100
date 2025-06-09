@@ -433,71 +433,49 @@
     };
 
 
-    const apiCall = async (prompt, modelIndex = 0, customTemperature = 1.9, retryCount = 0) => {
-        if (modelIndex >= MODELS_TO_TRY.length) {
-            throw new Error('All available models failed to process the request after multiple retries.');
+   const apiCall = async (prompt, modelIndex = 0, customTemperature = 1.9, retryCount = 0) => {
+  if (modelIndex >= MODELS_TO_TRY.length) {
+    throw new Error('All available models failed to process the request.');
+  }
+  const currentModel = MODELS_TO_TRY[modelIndex];
+  try {
+    const response = await fetch('/api/humanize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: currentModel,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: customTemperature,
+        top_p: 0.98,
+        max_tokens: 2048,
+      }),
+    });
+    if (!response.ok) {
+      const errorBody = await response.text();
+      if (response.status === 400 && errorBody.includes("maximum context length")) {
+        return apiCall(prompt, modelIndex + 1, customTemperature, 0);
+      } else if (response.status === 429) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        return apiCall(prompt, modelIndex + 1, customTemperature, 0);
+      } else if (response.status >= 500 || response.status === 404 || response.status === 403) {
+        if (retryCount < 2) {
+          await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
+          return apiCall(prompt, modelIndex, customTemperature, retryCount + 1);
         }
-
-        const currentModel = MODELS_TO_TRY[modelIndex];
-        console.log(`Attempting API call with model: ${currentModel} (Temp: ${customTemperature}) - Retry: ${retryCount}`);
-
-        try {
-            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: currentModel,
-                    messages: [{ role: 'user', content: prompt }],
-                    temperature: customTemperature, 
-                    top_p: 0.98,
-                    max_tokens: 2048,
-                })
-            });
-
-            if (!response.ok) {
-                const errorBody = await response.text();
-                console.error(`API call failed for model ${currentModel}: HTTP Status ${response.status} - ${response.statusText}`, errorBody);
-
-                if (response.status === 400 && errorBody.includes("maximum context length exceeded")) {
-                    console.warn(`Token limit hit for model ${currentModel}. Trying next model...`);
-                    return apiCall(prompt, modelIndex + 1, customTemperature, 0); 
-                } else if (response.status === 429) {
-                    console.warn(`Rate limit hit for model ${currentModel}. Waiting and trying next model...`);
-                    await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
-                    return apiCall(prompt, modelIndex + 1, customTemperature, 0); 
-                } else if (response.status >= 500 || response.status === 404 || response.status === 403) { // Server errors, forbidden, not found
-                    if (retryCount < 2) { 
-                        console.warn(`Retrying model ${currentModel} due to server/network error...`);
-                        await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1))); 
-                        return apiCall(prompt, modelIndex, customTemperature, retryCount + 1);
-                    } else {
-                        console.warn(`Max retries for model ${currentModel}. Trying next model...`);
-                        return apiCall(prompt, modelIndex + 1, customTemperature, 0);
-                    }
-                } else {
-                    console.warn(`Client error with model ${currentModel}. Trying next model...`);
-                    return apiCall(prompt, modelIndex + 1, customTemperature, 0);
-                }
-            }
-            const data = await response.json();
-            const content = data.choices?.[0]?.message?.content.trim() || null;
-            return content; 
-
-        } catch (error) { 
-            console.error(`Error during API call with model ${currentModel}:`, error);
-            if (retryCount < 2) {
-                console.warn(`Retrying model ${currentModel} due to network/general error...`);
-                await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
-                return apiCall(prompt, modelIndex, customTemperature, retryCount + 1);
-            } else {
-                console.warn(`Max retries for model ${currentModel}. Trying next model...`);
-                return apiCall(prompt, modelIndex + 1, customTemperature, 0);
-            }
-        }
-    };
+        return apiCall(prompt, modelIndex + 1, customTemperature, 0);
+      }
+      return apiCall(prompt, modelIndex + 1, customTemperature, 0);
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content.trim() || null;
+  } catch (error) {
+    if (retryCount < 2) {
+      await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
+      return apiCall(prompt, modelIndex, customTemperature, retryCount + 1);
+    }
+    return apiCall(prompt, modelIndex + 1, customTemperature, 0);
+  }
+};
 
     const analyzeSectionForPatterns = (section) => {
         const issues = {
