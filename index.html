@@ -212,7 +212,6 @@
     </div>
 <script>
 
-    const API_KEY = process.env.AI_Humanizer_API;
     
     // Define an array of models to try, in order of preference/fallback
     // Prioritizing faster, generally good-performing models first.
@@ -452,7 +451,8 @@
     });
     const data = await response.json();
     if (!response.ok) {
-      if (data.error.includes('maximum context length')) {
+      const errorMsg = data.error || 'Unknown error';
+      if (errorMsg.includes('maximum context length')) {
         return apiCall(prompt, modelIndex + 1, customTemperature, 0);
       } else if (response.status === 429) {
         await new Promise(resolve => setTimeout(resolve, 3000));
@@ -464,7 +464,7 @@
         }
         return apiCall(prompt, modelIndex + 1, customTemperature, 0);
       }
-      throw new Error(data.error || 'API request failed');
+      throw new Error(errorMsg);
     }
     return data.choices?.[0]?.message?.content.trim() || null;
   } catch (error) {
@@ -639,151 +639,141 @@
 
 
     const processText = async () => {
-        const text = $('input').value.trim();
-        if (!text) {
-            alert('Please enter text to humanize.');
-            return;
-        }
+  const text = $('input').value.trim();
+  if (!text) {
+    alert('Please enter text to humanize.');
+    return;
+  }
 
-        const processBtn = $('process');
-        const progressContainer = document.querySelector('.progress');
-        const progressBar = document.querySelector('.progress-bar');
-        const statusEl = $('status');
-        const outputEl = $('output');
-        const jsonOutputEl = $('jsonOutput');
-        const copyJsonButton = $('copyJson'); 
+  const processBtn = $('process');
+  const progressContainer = document.querySelector('.progress');
+  const progressBar = document.querySelector('.progress-bar');
+  const statusEl = $('status');
+  const outputEl = $('output');
+  const jsonOutputEl = $('jsonOutput');
+  const copyJsonButton = $('copyJson');
 
-        processBtn.disabled = true;
-        processBtn.textContent = 'Processing...';
-        progressContainer.style.display = 'block';
-        progressBar.style.width = '0%';
-        statusEl.textContent = 'Initializing...';
-        outputEl.value = '';
-        jsonOutputEl.textContent = '';
-        jsonOutputEl.style.display = 'none';
-        if (copyJsonButton) { 
-            copyJsonButton.style.display = 'none';
-        }
-        
+  processBtn.disabled = true;
+  processBtn.textContent = 'Processing...';
+  progressContainer.style.display = 'block';
+  progressBar.style.width = '0%';
+  statusEl.textContent = 'Initializing...';
+  outputEl.value = '';
+  jsonOutputEl.textContent = '';
+  jsonOutputEl.style.display = 'none';
+  if (copyJsonButton) {
+    copyJsonButton.style.display = 'none';
+  }
+
+  try {
+    const tone = $('tone').value;
+    const isPersonal = $('perspective').checked;
+    console.log("Is Personal Mode:", isPersonal);
+
+    const rawSectionsArray = text.split(/\n\s*\n+/).filter(s => s.trim());
+    if (rawSectionsArray.length === 0) {
+      statusEl.textContent = 'No valid text sections found.';
+      throw new Error('No valid text sections found.');
+    }
+
+    const originalInputDict = {};
+    rawSectionsArray.forEach((content, index) => {
+      originalInputDict[`section_${index + 1}`] = content;
+    });
+
+    const humanizedOutputDict = {};
+    const finalHumanizedSections = [];
+
+    for (let i = 0; i < rawSectionsArray.length; i++) {
+      const sectionKey = `section_${i + 1}`;
+      const originalSectionContent = rawSectionsArray[i];
+
+      statusEl.textContent = `Humanizing section ${i + 1} of ${rawSectionsArray.length}...`;
+
+      const pastParaphrases = finalHumanizedSections;
+      const sectionAnalysis = analyzeSectionForPatterns(originalSectionContent);
+      const humanizePrompt = buildComprehensivePrompt(originalSectionContent, tone, isPersonal, pastParaphrases, sectionAnalysis);
+
+      let humanizedContent = null;
+      try {
+        humanizedContent = await apiCall(humanizePrompt, 0, 1.9);
+      } catch (apiError) {
+        console.error(`Initial humanization API call failed for section ${i + 1}:`, apiError);
+      }
+
+      if (!humanizedContent || isNonsense(humanizedContent)) {
+        console.warn(`Initial humanization for section ${i + 1} failed/nonsense. Retrying...`);
+        statusEl.textContent = `Retrying humanization for section ${i + 1}...`;
         try {
-            const tone = $('tone').value;
-            const isPersonal = $('perspective').checked; 
-            console.log("Is Personal Mode:", isPersonal);
-
-            const rawSectionsArray = text.split(/\n\s*\n+/).filter(s => s.trim());
-            if (rawSectionsArray.length === 0) {
-                statusEl.textContent = 'No valid text sections found.';
-                setTimeout(() => {
-                    progressContainer.style.display = 'none';
-                    processBtn.disabled = false;
-                    processBtn.textContent = 'Humanize Text';
-                    statusEl.textContent = '';
-                }, 1000);
-                return;
-            }
-            
-            const originalInputDict = {};
-            rawSectionsArray.forEach((content, index) => {
-                originalInputDict[`section_${index + 1}`] = content;
-            });
-
-            const humanizedOutputDict = {}; 
-            const finalHumanizedSections = []; 
-
-            for (let i = 0; i < rawSectionsArray.length; i++) {
-                const sectionKey = `section_${i + 1}`;
-                const originalSectionContent = rawSectionsArray[i]; // This is correctly defined here
-
-                statusEl.textContent = `Humanizing section ${i + 1} of ${rawSectionsArray.length}...`;
-                
-                const pastParaphrases = finalHumanizedSections; 
-                
-                const sectionAnalysis = analyzeSectionForPatterns(originalSectionContent);
-                const humanizePrompt = buildComprehensivePrompt(originalSectionContent, tone, isPersonal, pastParaphrases, sectionAnalysis);
-                
-                let humanizedContent = null;
-                try {
-                    humanizedContent = await apiCall(humanizePrompt, 0, 1.9); 
-                } catch (apiError) {
-                    console.error(`Initial humanization API call failed for section ${i + 1}:`, apiError);
-                }
-
-                // If humanization fails or is nonsense, try again with a slightly lower temperature
-                if (!humanizedContent || isNonsense(humanizedContent)) {
-                    console.warn(`Initial humanization for section ${i + 1} failed/nonsense. Retrying...`);
-                    statusEl.textContent = `Retrying humanization for section ${i + 1}...`;
-                    try {
-                        humanizedContent = await apiCall(humanizePrompt, 0, 1.0); // Lower temp for retry
-                        if (isNonsense(humanizedContent)) {
-                             console.warn(`Second humanization attempt for section ${i + 1} also failed/nonsense. Using original content.`);
-                             humanizedContent = originalSectionContent;
-                        }
-                    } catch (retryError) {
-                        console.error(`Retry humanization API call failed for section ${i + 1}:`, retryError);
-                        humanizedContent = originalSectionContent; 
-                    }
-                }
-                
-                humanizedContent = sanitizeAIOutput(humanizedContent);
-                humanizedContent = enforceForbiddenWords(humanizedContent); // Post-process forbidden words
-
-                // Individual review for each section immediately after humanization
-                statusEl.textContent = `Reviewing section ${i + 1} for punctuation and style...`;
-                const reviewPrompt = buildIndividualSectionReviewPrompt(humanizedContent);
-                let reviewedContent = null;
-                try {
-                    reviewedContent = await apiCall(reviewPrompt, 0, 0.1); 
-                } catch (reviewApiError) {
-                    console.error(`Individual review API call failed for section ${i + 1}:`, reviewApiError);
-                }
-
-                if (!reviewedContent || isNonsense(reviewedContent)) {
-                    console.warn(`Individual review for section ${i + 1} failed/nonsense. Using prior humanized content.`);
-                    reviewedContent = humanizedContent; 
-                } else {
-                    reviewedContent = sanitizeAIOutput(reviewedContent); 
-                }
-                
-                humanizedOutputDict[sectionKey] = reviewedContent; 
-                finalHumanizedSections.push(reviewedContent); 
-
-                outputEl.value = finalHumanizedSections.join('\n\n'); 
-                const words = outputEl.value.trim().match(/\S+/g) || [];
-                $('output-count').textContent = `${words.length} words`;
-
-                progressBar.style.width = `${Math.round(((i + 1) / rawSectionsArray.length) * 100)}%`;
-            }
-            
-            statusEl.textContent = 'All sections processed and reviewed. Assembling final output.';
-            progressBar.style.width = '100%';
-
-            outputEl.value = finalHumanizedSections.join('\n\n');
-
-            const finalWords = outputEl.value.trim().match(/\S+/g) || [];
-            $('output-count').textContent = `${finalWords.length} words`;
-
-            jsonOutputEl.textContent = JSON.stringify(humanizedOutputDict, null, 2);
-            jsonOutputEl.style.display = 'block';
-            if (copyJsonButton) { 
-                copyJsonButton.style.display = 'inline-block';
-            }
-            statusEl.textContent = 'Humanization complete!';
-
-        } catch (error) {
-            outputEl.value = `Error: ${error.message}`;
-            statusEl.textContent = `Failed: ${error.message.substring(0, 100)}...`;
-            console.error('Processing error details:', error);
-        } finally {
-            setTimeout(() => {
-                progressContainer.style.display = 'none';
-                processBtn.disabled = false;
-                processBtn.textContent = 'Humanize Text';
-                if (!statusEl.textContent.startsWith('Failed:')) {
-                    statusEl.textContent = '';
-                }
-            }, 2000);
+          humanizedContent = await apiCall(humanizePrompt, 0, 1.0);
+          if (isNonsense(humanizedContent)) {
+            console.warn(`Second humanization attempt for section ${i + 1} also failed/nonsense. Using original content.`);
+            humanizedContent = originalSectionContent;
+          }
+        } catch (retryError) {
+          console.error(`Retry humanization API call failed for section ${i + 1}:`, retryError);
+          humanizedContent = originalSectionContent;
         }
-    };
+      }
+
+      humanizedContent = sanitizeAIOutput(humanizedContent);
+      humanizedContent = enforceForbiddenWords(humanizedContent);
+
+      statusEl.textContent = `Reviewing section ${i + 1} for punctuation and style...`;
+      const reviewPrompt = buildIndividualSectionReviewPrompt(humanizedContent);
+      let reviewedContent = null;
+      try {
+        reviewedContent = await apiCall(reviewPrompt, 0, 0.1);
+      } catch (reviewApiError) {
+        console.error(`Individual review API call failed for section ${i + 1}:`, reviewApiError);
+      }
+
+      if (!reviewedContent || isNonsense(reviewedContent)) {
+        console.warn(`Individual review for section ${i + 1} failed/nonsense. Using prior humanized content.`);
+        reviewedContent = humanizedContent;
+      } else {
+        reviewedContent = sanitizeAIOutput(reviewedContent);
+      }
+
+      humanizedOutputDict[sectionKey] = reviewedContent;
+      finalHumanizedSections.push(reviewedContent);
+
+      outputEl.value = finalHumanizedSections.join('\n\n');
+      const words = outputEl.value.trim().match(/\S+/g) || [];
+      $('output-count').textContent = `${words.length} words`;
+
+      progressBar.style.width = `${Math.round(((i + 1) / rawSectionsArray.length) * 100)}%`;
+    }
+
+    statusEl.textContent = 'All sections processed and reviewed. Assembling final output.';
+    progressBar.style.width = '100%';
+
+    outputEl.value = finalHumanizedSections.join('\n\n');
+
+    const finalWords = outputEl.value.trim().match(/\S+/g) || [];
+    $('output-count').textContent = `${finalWords.length} words`;
+
+    jsonOutputEl.textContent = JSON.stringify(humanizedOutputDict, null, 2);
+    jsonOutputEl.style.display = 'block';
+    if (copyJsonButton) {
+      copyJsonButton.style.display = 'inline-block';
+    }
+    statusEl.textContent = 'Humanization complete!';
+  } catch (error) {
+    outputEl.value = `Error: ${error.message}`;
+    statusEl.textContent = `Failed: ${error.message.substring(0, 100)}...`;
+    console.error('Processing error details:', error);
+  } finally {
+    setTimeout(() => {
+      progressContainer.style.display = 'none';
+      processBtn.disabled = false;
+      processBtn.textContent = 'Humanize Text';
+      if (!statusEl.textContent.startsWith('Failed:')) {
+        statusEl.textContent = '';
+      }
+    }, 2000);
+  }
+};
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
