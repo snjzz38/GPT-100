@@ -439,7 +439,7 @@
   }
   const currentModel = MODELS_TO_TRY[modelIndex];
   try {
-    const response = await fetch('/api/humanize', {
+    const response = await fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
