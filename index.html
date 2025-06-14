@@ -79,8 +79,8 @@
 <script>
 const $=id=>document.getElementById(id);
 const MODELS_TO_TRY=['llama-3.1-8b-instant','llama3-8b-8192','gemma2-9b-it','mistral-saba-24b','llama3-70b-8192','meta-llama/llama-4-maverick-17b-128e-instruct','meta-llama/llama-4-scout-17b-16e-instruct','meta-llama/llama-guard-4-12b','llama-guard-3-8b','meta-llama/llama-prompt-guard-2-22m','meta-llama/llama-prompt-guard-2-86m'];
-const FORBIDDEN_WORDS_COMPREHENSIVE=[/* ... [same as previous, truncated for brevity] ... */'reedeem','utilize','alterations'];
-const FORBIDDEN_WORDS_FOR_AI_PROMPT=['unequivocal','mitigate','transcends',/* ... same as above ... */'alterations'];
+const FORBIDDEN_WORDS_COMPREHENSIVE=[/* ... [use previous list] ... */'reedeem','utilize','alterations'];
+const FORBIDDEN_WORDS_FOR_AI_PROMPT=['unequivocal','mitigate','transcends',/* ... as above ... */'alterations'];
 const COMMON_WORDS = new Set(['the','be','to','of','and','a','in','that','have','I','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there','their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no','just','him','know','take','person','into','year','your','good','some','could','them','see','other','than','then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well','way','even','new','want','because','any','these','give','day','most','us']);
 const PROPER_NOUNS=new Set(['climate change','ipcc','paris agreement']);
 
@@ -115,7 +115,7 @@ const isNonsense = t => {
         const x=t.match(/[^a-zA-Z0-9\s.,!?'-]/g);
         if(x&&x.length/t.length>.05)return true;
     }
-    if(/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|please note that|as previously mentioned|here is the corrected text|here is your corrected text)/i.test(t))return true;
+    if(/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|please note that|as previously mentioned|here is the corrected text|here is your corrected text|here is the rewritten text|here is the rewritten text for section|here is the rewritten text for "section|here is the rewritten text for section|here is the rewritten text for Section)/i.test(t))return true;
     if(w.length>10&&!/[.!?]/.test(t))return true;
     return false;
 };
@@ -124,7 +124,7 @@ const sanitizeAIOutput = t => {
     if(!t)return '';
     let c=t;
     const p=[
-        "here's the rewritten text:","here is the rewritten text:",/* ... (same as above) ... */,"here's the humanized output:","your requested output:"
+        "here's the rewritten text:","here is the rewritten text:",/* ... same as previous ... */,"here's the humanized output:","your requested output:","here is the rewritten text for section","here is the rewritten text for \"section","here is the rewritten text for Section"
     ];
     p.sort((a,b)=>b.length-a.length);
     for(const prefix of p)if(c.toLowerCase().startsWith(prefix)){c=c.substring(prefix.length).trim();break;}
@@ -135,82 +135,32 @@ const sanitizeAIOutput = t => {
     c=c.replace(/\s{2,}/g,' ');
     c=c.replace(/\s*([.!?])\s*/g,'$1 ').trim();
     c=c.replace(/\s*,\s*/g,', ');
+    // Remove any remaining "here is"/"here's" at section starts
+    c=c.replace(/^(here(\s+)?(is|are|was|were|will be|has been|have been)[^.!?]*[.!?])/i, '');
+    // Remove "section [0-9]+", etc at start
+    c=c.replace(/^section\s*\d+[:.\s-]*/i, '');
     return c;
 };
-
 const enforceForbiddenWords = text => {
-    // Don't replace proper nouns and keywords
     let c=text;
     FORBIDDEN_WORDS_COMPREHENSIVE.forEach(w=>{
         if(PROPER_NOUNS.has(w.toLowerCase()))return;
         const r=new RegExp(`\\b${w}\\b`,'gi');
         c=c.replace(r,`[REPLACED WORD: ${w.toUpperCase()}]`);
     });
+    // Replace "peril" with "danger" and "augments" with "intensifies", "necessitates" with "needs", "retributable" with "fair", etc.
+    c=c.replace(/\bperil(s|ous)?\b/gi,'danger');
+    c=c.replace(/\baugments?\b/gi,'intensifies');
+    c=c.replace(/\bnecessitates\b/gi,'needs');
+    c=c.replace(/\bretributable\b/gi,'fair');
+    c=c.replace(/\bcatastrophic\b/gi,'devastating');
+    c=c.replace(/\bexacerbating\b/gi,'making worse');
+    c=c.replace(/\bmalnutrition\b/gi,'hunger');
     return c;
 };
-
-// Participial phrase remover (for post-processing, extra safety)
 function removeParticipialPhrases(text) {
     // Remove leading participial phrases: "Tired from the long flight, she slept." -> "She slept."
     return text.replace(/\b([A-Za-z]+ed|[A-Za-z]+ing)\b[^,.!?]*,\s+/g, '');
-}
-
-// Complexity increases for rare, long, multi-syllable or non-common words
-function scoreWordComplexity(w,dictData){
-    if(!w)return 0;
-    let s=0;
-    if(w.length>7)s++;
-    let y=w.match(/[aeiouy]+/gi)||[];
-    if(y.length>=3)s++;
-    if(dictData&&dictData.meanings&&dictData.meanings.length){
-        const pts=dictData.meanings.map(m=>m.partOfSpeech);
-        if(pts.includes('adjective')||pts.includes('adverb'))s++;
-    }
-    if(!COMMON_WORDS.has(w.toLowerCase()))s++;
-    return s;
-}
-async function getDictionaryData(word){
-    try{
-        const r=await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
-        if(!r.ok)throw 0;
-        const d=await r.json();
-        return d[0];
-    }catch{return null;}
-}
-async function getSimplestSynonym(word,ctx){
-    const d=await getDictionaryData(word);
-    if(!d||!d.meanings)return null;
-    let syns=[];
-    for(const m of d.meanings)if(Array.isArray(m.synonyms))syns=syns.concat(m.synonyms);
-    syns=[...new Set(syns)];
-    const orig=scoreWordComplexity(word,d);
-    let best={word,score:orig};
-    for(const syn of syns){
-        if(!/^[a-zA-Z]+$/.test(syn))continue;
-        const synDict=await getDictionaryData(syn);
-        const score=scoreWordComplexity(syn,synDict);
-        if(score<best.score&&ctx.toLowerCase().includes(syn.toLowerCase()))best={word:syn,score};
-    }
-    return best.word!==word?best.word:null;
-}
-async function simplifySectionWords(textSection,ctx){
-    const words=textSection.match(/\b\w+\b/g)||[],checked=new Set();
-    let newText=textSection;
-    for(const w of words){
-        const lower=w.toLowerCase();
-        if(PROPER_NOUNS.has(lower))continue;
-        if(FORBIDDEN_WORDS_COMPREHENSIVE.includes(lower))continue;
-        if(checked.has(lower))continue;
-        checked.add(lower);
-        if(w.length>7||/[A-Z]/.test(w)||/[aeiou]{3,}/i.test(w)||!COMMON_WORDS.has(lower)){
-            const simple=await getSimplestSynonym(lower,ctx);
-            if(simple&&simple!==lower){
-                const reg=new RegExp("\\b"+w+"\\b","gi");
-                newText=newText.replace(reg,simple);
-            }
-        }
-    }
-    return newText;
 }
 function splitInputToSectionDict(text){
     const arr=text.split(/\n\s*\n+/).filter(s=>s.trim()),dict={};
@@ -230,19 +180,6 @@ function analyzeSectionForPatterns(section){
             }
         }
     });
-    [
-        /^The world is/,/^Our planet/,/^Every year the earth/,/^Climate change is making things/,/^It is worth noting/,/^The key factor/,/^Rising global temperatures/,/^The dire economic effects/,/^It is important to note/,/^In conclusion/,/^Furthermore/,/^Moreover/,/^However/,/^Therefore/,/^Thus/,/^The fact that/,/^In order to/,/^Ultimately/,/^Despite the fact that/,/^While it may seem/,/^In essence/,/^What's more/,/^On the other hand/,/^Concurrently/,/^Subsequently/,/^In particular/,/^It is essential/,/^It is crucial/,/^It is clear that/,/^To summarize/,/^In summary/
-    ].forEach(start=>{
-        (section.match(/[^.!?]+[.!?]*/g)||[section]).forEach(sentence=>{
-            const trimmed=sentence.trim();
-            if(start.test(trimmed)){
-                issues.hasPredictableStart=!0;
-                const ex=trimmed.split(' ').slice(0,5).join(' ')+'...';
-                if(!issues.predictableStartExamples.includes(ex))issues.predictableStartExamples.push(`"${ex}"`);
-            }
-        });
-    });
-    if(/[;:]/.test(section))issues.hasColonsOrSemicolons=!0;
     return issues;
 }
 function buildComprehensivePrompt(sectionName,allSectionsDict,section,tone,isPersonal,pastParaphrases,sectionAnalysis){
@@ -258,9 +195,6 @@ function buildComprehensivePrompt(sectionName,allSectionsDict,section,tone,isPer
     let specific='';
     if(sectionAnalysis.hasParticipialPhrase&&sectionAnalysis.participialExamples.length>0)specific+=`
             * **ABSOLUTELY RESTRUCTURE AND ELIMINATE ALL PARTICIPIAL PHRASES.** This is a critical requirement. Rewrite phrases like ${sectionAnalysis.participialExamples.join(', ')} as full, independent clauses.`;
-    if(sectionAnalysis.hasPredictableStart&&sectionAnalysis.predictableStartExamples.length>0)specific+=`
-            * **VARY SENTENCE BEGINNINGS.** Avoid predictable starts like ${sectionAnalysis.predictableStartExamples.join(', ')}. Make every sentence start differently.`;
-    if(specific)specific=`\n        **SECTION-SPECIFIC REFINEMENTS:**`+specific;
     const wc=section.trim().split(/\s+/).length,min=Math.round(wc*.90),max=Math.round(wc*1.10),dictString=JSON.stringify(allSectionsDict,null,2);
     return `
 **CONTEXT:**
@@ -307,6 +241,26 @@ You are an expert copy editor. Review the provided single paragraph ONLY for the
 **FINAL OUTPUT (SINGLE PARAGRAPH):** ONLY the corrected text, with no preamble or commentary.`;
 }
 
+// FINAL PASS: Remove all AI comments and fix grammar/spelling on the entire output (no meaning change)
+async function finalGrammarCleanup(text) {
+    const prompt = `
+You are an expert editor for humanizing AI-generated text.
+
+TASK: Remove all AI comments (such as "here is the rewritten text", "here is the revised section", "section 3:", etc.), remove any participial phrases at the start of sentences, and correct all grammar, spelling, or punctuation mistakes. Use only conventional punctuation (.,!?). Do NOT change the meaning, facts, or keywords (like "Climate Change", "IPCC", "Paris Agreement") of the text, and do NOT replace or omit any proper nouns. Do not add or remove sentences. Return only the fixed, clean text in a single paragraph, no commentary or section labels.
+
+TEXT TO FIX:
+"""${text}"""
+`;
+    let cleaned = '';
+    try {
+        cleaned = await apiCall(prompt, 0, 0.1);
+        cleaned = sanitizeAIOutput(cleaned);
+    } catch {
+        cleaned = text;
+    }
+    return cleaned;
+}
+
 const processText = async () => {
     const text = $('input').value.trim();
     if(!text){alert('Please enter text to humanize.');return;}
@@ -339,9 +293,13 @@ const processText = async () => {
             const words=outputEl.value.trim().match(/\S+/g)||[];$('output-count').textContent=`${words.length} words`;
             progressBar.style.width=`${Math.round(((i+1)/sectionNames.length)*100)}%`;
         }
-        statusEl.textContent='All sections processed and reviewed. Assembling final output.';progressBar.style.width='100%';
-        outputEl.value=finalHumanizedSections.join('\n\n');
+        statusEl.textContent='Cleaning up any leftover AI comments and fixing grammar...';
+        // Final cleanup call for the whole output
+        let cleanedText = await finalGrammarCleanup(finalHumanizedSections.join('\n\n'));
+        cleanedText = cleanedText.replace(/\n{2,}/g,'\n\n').trim();
+        outputEl.value=cleanedText;
         const finalWords=outputEl.value.trim().match(/\S+/g)||[];$('output-count').textContent=`${finalWords.length} words`;
+        progressBar.style.width='100%';
         statusEl.textContent='Humanization complete!';
     }catch(error){
         outputEl.value=`Error: ${error.message}`;statusEl.textContent=`Failed: ${error.message.substring(0,100)}...`;
