@@ -78,7 +78,7 @@
             border-radius: 20px;
             position: relative;
             cursor: pointer;
-            transition: transform 0.3s; /* Adjusted from background-color for visual */
+            transition: transform 0.3s;
         }
         .toggle input::before {
             content: '';
@@ -210,26 +210,25 @@
         <div class="status" id="status"></div>
     </div>
 <script>
+    // Utility for getting elements by ID
+    const $ = id => document.getElementById(id);
 
-    
-    // Define an array of models to try, in order of preference/fallback
-    // Prioritizing faster, generally good-performing models first.
+    // Constants for models (unchanged from your original)
     const MODELS_TO_TRY = [
         'llama-3.1-8b-instant',
         'llama3-8b-8192',
         'gemma2-9b-it',
         'mistral-saba-24b',
         'llama3-70b-8192',
-        // Fallback to larger or more specialized models if initial ones struggle
         'meta-llama/llama-4-maverick-17b-128e-instruct',
         'meta-llama/llama-4-scout-17b-16e-instruct',
-        'meta-llama/llama-guard-4-12b', 
+        'meta-llama/llama-guard-4-12b',
         'llama-guard-3-8b',
         'meta-llama/llama-prompt-guard-2-22m',
         'meta-llama/llama-prompt-guard-2-86m'
     ];
 
-    // Comprehensive list for external post-processing replacement
+    // Comprehensive forbidden word list and AI prompt-focused list
     const FORBIDDEN_WORDS_COMPREHENSIVE = [
         'exacerbating', 'unequivocal', 'mitigate', 'transcends', 'stark', 'dire', 'exert', 'fortress', 'induce', 
         'ameliorate', 'socioeconomic', 'culminate', 'imperative', 'formidable', 'subsequently', 'hitherto', 
@@ -251,10 +250,8 @@
         'solid', 'evidence', 'innovative', 'solutions', 'universal', 'responsibility', 'insurmountable', 'obstacles', 
         'vast', 'opportunity', 'establish', 'sustainable', 'resilient', 'just', 'current and future generations', 
         'proactive', 'stance', 'define', 'sustainable', 'return', 'long', 'fragile', 'well-being',
-        'necessitate', 'ecstatic', 'reedeem', 'utilize', 'alterations' // Added 'alterations'
+        'necessitate', 'ecstatic', 'reedeem', 'utilize', 'alterations'
     ];
-
-    // Smaller, critical list for the AI to focus on in the prompt (common AI-like words)
     const FORBIDDEN_WORDS_FOR_AI_PROMPT = [
         'unequivocal', 'mitigate', 'transcends', 'stark', 'dire', 'exert', 'fortress', 
         'induce', 'ameliorate', 'socioeconomic', 'culminate', 'imperative', 'formidable', 'subsequently', 
@@ -276,95 +273,73 @@
         'solid', 'evidence', 'innovative', 'solutions', 'universal', 'responsibility', 'insurmountable', 'obstacles', 
         'vast', 'opportunity', 'establish', 'sustainable', 'resilient', 'just', 'current and future generations', 
         'proactive', 'stance', 'define', 'sustainable', 'return', 'long', 'fragile', 'well-being',
-        'necessitate', 'ecstatic', 'reedeem', 'utilize', 'alterations' // Added 'alterations'
+        'necessitate', 'ecstatic', 'reedeem', 'utilize', 'alterations'
     ];
 
-    const $ = id => document.getElementById(id);
-
-    const init = () => {
-        const processButton = $('process');
-        if (!processButton) {
-            console.error("Error: 'process' button not found in the DOM. Check its ID in HTML.");
-            return;
+    // Helper: API call logic for model fallback
+    const apiCall = async (prompt, modelIndex = 0, customTemperature = 1.9, retryCount = 0) => {
+        if (modelIndex >= MODELS_TO_TRY.length) {
+            throw new Error('All available models failed to process the request.');
         }
-
-        ['input', 'output'].forEach(id => {
-            const el = $(id);
-            const counter = $(`${id}-count`);
-            const updateCount = () => {
-                const words = el.value.trim().match(/\S+/g) || [];
-                counter.textContent = `${words.length} words`;
-            };
-            el.addEventListener('input', updateCount);
-            updateCount();
-        });
-
-        const outputHeaderEl = $('area-header-output'); 
-        if (outputHeaderEl) { 
-            const copyJsonButton = document.createElement('button');
-            copyJsonButton.id = 'copyJson';
-            copyJsonButton.textContent = 'Copy JSON';
-            copyJsonButton.style.marginLeft = '10px';
-            copyJsonButton.style.display = 'none'; 
-            outputHeaderEl.appendChild(copyJsonButton); 
-
-            copyJsonButton.addEventListener('click', async () => {
-                const jsonOutputEl = $('jsonOutput');
-                if (!jsonOutputEl.textContent) return;
-                try {
-                    await navigator.clipboard.writeText(jsonOutputEl.textContent);
-                    copyJsonButton.textContent = 'Copied!';
-                    setTimeout(() => copyJsonButton.textContent = 'Copy JSON', 1500);
-                } catch (err) {
-                    alert('Failed to copy JSON.');
-                }
+        const currentModel = MODELS_TO_TRY[modelIndex];
+        try {
+            const response = await fetch('/api/proxy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: currentModel,
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: customTemperature,
+                    top_p: 0.98,
+                    max_tokens: 2048,
+                }),
             });
-        }
-
-        const copyTextButton = $('copy'); 
-        if (copyTextButton) { 
-            copyTextButton.addEventListener('click', async () => {
-                const output = $('output');
-                if (!output.value) return;
-                try {
-                    await navigator.clipboard.writeText(output.value);
-                    copyTextButton.textContent = 'Copied!';
-                    setTimeout(() => copyTextButton.textContent = 'Copy', 1500);
-                } catch (err) {
-                    alert('Failed to copy text.');
+            const data = await response.json();
+            if (!response.ok) {
+                const errorMsg = data.error || 'Unknown error';
+                if (errorMsg.includes('maximum context length')) {
+                    return apiCall(prompt, modelIndex + 1, customTemperature, 0);
+                } else if (response.status === 429) {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    return apiCall(prompt, modelIndex + 1, customTemperature, 0);
+                } else if (response.status >= 500 || response.status === 404 || response.status === 403) {
+                    if (retryCount < 2) {
+                        await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
+                        return apiCall(prompt, modelIndex, customTemperature, retryCount + 1);
+                    }
+                    return apiCall(prompt, modelIndex + 1, customTemperature, 0);
                 }
-            });
+                throw new Error(errorMsg);
+            }
+            return data.choices?.[0]?.message?.content.trim() || null;
+        } catch (error) {
+            if (retryCount < 2) {
+                await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
+                return apiCall(prompt, modelIndex, customTemperature, retryCount + 1);
+            }
+            return apiCall(prompt, modelIndex + 1, customTemperature, 0);
         }
-
-        processButton.addEventListener('click', processText);
     };
 
-    // Helper to check if text is likely nonsense or contains unexpected AI filler
+    // Helper: Detect likely nonsense or filler AI output
     const isNonsense = (text) => {
-        if (!text || text.trim().length < 10) return true; // Too short to be meaningful
+        if (!text || text.trim().length < 10) return true;
         const words = text.trim().split(/\s+/);
-        // Check for very low word diversity (e.g., lots of repetition)
         const uniqueWords = new Set(words.map(w => w.toLowerCase()));
-        if (words.length > 20 && uniqueWords.size / words.length < 0.3) return true; // Less than 30% unique words
-        // Check for unusual character patterns (e.g., excessive symbols, very long "words" without spaces)
-        if (/[^a-zA-Z0-9\s.,!?'-]/.test(text)) { // Contains unexpected special characters
+        if (words.length > 20 && uniqueWords.size / words.length < 0.3) return true;
+        if (/[^a-zA-Z0-9\s.,!?'-]/.test(text)) {
             const unexpectedChars = text.match(/[^a-zA-Z0-9\s.,!?'-]/g);
-            if (unexpectedChars && unexpectedChars.length / text.length > 0.05) return true; // More than 5% non-standard characters
+            if (unexpectedChars && unexpectedChars.length / text.length > 0.05) return true;
         }
-        // Check for common AI conversational filler that might slip through sanitize
-        if (/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|in summary|in conclusion)/i.test(text)) return true;
-        
-        // Simple check for lack of proper sentence structure (e.g., no periods for long text)
+        if (/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|please note that|as previously mentioned)/i.test(text)) return true;
         if (words.length > 10 && !/[.!?]/.test(text)) return true;
-
         return false;
     };
 
-
+    // Helper: Remove AI output boilerplate and clean up text
     const sanitizeAIOutput = (text) => {
         if (!text) return '';
         let cleanText = text;
-        
         const prefixes = [
             "here's the rewritten text:", "here is the rewritten text:", "certainly, here's the revised paragraph:", 
             "of course, here is the updated version:", "here is your rewritten paragraph:", "rewritten text:", 
@@ -396,85 +371,33 @@
             "the humanized text you asked for:", "here is the humanized paragraph:"
         ];
         prefixes.sort((a, b) => b.length - a.length);
-
         for (const prefix of prefixes) {
             if (cleanText.toLowerCase().startsWith(prefix)) {
                 cleanText = cleanText.substring(prefix.length).trim();
                 break;
             }
         }
-        
-        cleanText = cleanText.replace(/^(as requested|here is your text|i've rephrased this for you|this is the rewritten text|this is your rewritten text|here is the rewritten text for the section|here is (the|your) rewritten (text|output)( for the section)?|below is the (rewritten|humanized) text|this is your (updated|improved) text|the rewritten text is as follows|here's your new text|rewriting the text now|i think this is what the user wants|the humanized text is|here's the humanized output|your requested output|here is the humanized version of the text|here is the updated text|i've processed the text|this is the revised text|the revised text is|your text revised|here's your text|here is your text|alright, here's the rewritten paragraph|let me know if you need any further adjustments|please note this is only one possible way to rewrite it|this is a possible humanized version|here's a humanized version of your text|the humanized output is|here's the humanized output you requested|this is the humanized text you asked for|i've rewritten the text for you|here is the revised text you requested|this is the rewritten version of your text|here is the humanized version of your provided text|your text has been humanized|i have humanized the text as follows|the humanized text you asked for|here is the humanized paragraph)\W*\n*/i, '').trim();
-
+        cleanText = cleanText.replace(/^(as requested|here is your text|i've rephrased this for you|this is the rewritten text|this is your rewritten text|here is the rewritten text for the section|here's a version|this is the humanized version|rewritten:)\s*/i, '');
         cleanText = cleanText.replace(/^["'`]+|["'`]+$/g, '').trim();
-
-        cleanText = cleanText.replace(/[\u2014\u2013]/g, ' '); 
-
-        // Remove trailing commas before periods/end of sentence
+        cleanText = cleanText.replace(/[\u2014\u2013]/g, ' ');
         cleanText = cleanText.replace(/,(\s*[.!?])/g, '$1');
-        // Remove multiple spaces
         cleanText = cleanText.replace(/\s{2,}/g, ' ');
-        // Remove any leading/trailing whitespace around sentences
         cleanText = cleanText.replace(/\s*([.!?])\s*/g, '$1 ').trim();
-        cleanText = cleanText.replace(/\s*,\s*/g, ', '); // Standardize comma spacing
-
+        cleanText = cleanText.replace(/\s*,\s*/g, ', ');
         return cleanText;
     };
 
+    // Helper: Replace forbidden words with a marker
     const enforceForbiddenWords = (text) => {
         let cleanText = text;
         FORBIDDEN_WORDS_COMPREHENSIVE.forEach(word => {
             const regex = new RegExp(`\\b${word}\\b`, 'gi');
-            cleanText = cleanText.replace(regex, `[REPLACED WORD: ${word.toUpperCase()}]`); 
+            cleanText = cleanText.replace(regex, `[REPLACED WORD: ${word.toUpperCase()}]`);
         });
         return cleanText;
     };
 
-
-   const apiCall = async (prompt, modelIndex = 0, customTemperature = 1.9, retryCount = 0) => {
-  if (modelIndex >= MODELS_TO_TRY.length) {
-    throw new Error('All available models failed to process the request.');
-  }
-  const currentModel = MODELS_TO_TRY[modelIndex];
-  try {
-    const response = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: currentModel,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: customTemperature,
-        top_p: 0.98,
-        max_tokens: 2048,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      const errorMsg = data.error || 'Unknown error';
-      if (errorMsg.includes('maximum context length')) {
-        return apiCall(prompt, modelIndex + 1, customTemperature, 0);
-      } else if (response.status === 429) {
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        return apiCall(prompt, modelIndex + 1, customTemperature, 0);
-      } else if (response.status >= 500 || response.status === 404 || response.status === 403) {
-        if (retryCount < 2) {
-          await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
-          return apiCall(prompt, modelIndex, customTemperature, retryCount + 1);
-        }
-        return apiCall(prompt, modelIndex + 1, customTemperature, 0);
-      }
-      throw new Error(errorMsg);
-    }
-    return data.choices?.[0]?.message?.content.trim() || null;
-  } catch (error) {
-    if (retryCount < 2) {
-      await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
-      return apiCall(prompt, modelIndex, customTemperature, retryCount + 1);
-    }
-    return apiCall(prompt, modelIndex + 1, customTemperature, 0);
-  }
-};
-
+    // Helper: Analyze a section for participial phrases, predictable starts, colons/semicolons
     const analyzeSectionForPatterns = (section) => {
         const issues = {
             hasParticipialPhrase: false,
@@ -483,7 +406,6 @@
             predictableStartExamples: [],
             hasColonsOrSemicolons: false
         };
-
         const participialRegex = /(\b\w+(?:ing|ed|en)\b(?:(?:\s\w+)*?\s\w+)?)(?=\s|,|\.|$)/gi;
         let match;
         const sentences = section.match(/[^.!?]+[.!?]*/g) || [section];
@@ -501,11 +423,8 @@
                 }
             }
         });
-        
         const predictableStarts = [
-            /^The world is/, /^Our planet/, /^Every year the earth/, /^Climate change is making things/, /^It is worth noting/, /^The key factor/, /^Rising global temperatures/, /^The dire economic effects/, /^Strategies for Mitigation and Adaptation/, /^Climate change is a harsh reality/,
-            /^It is important to note/, /^In conclusion/, /^Furthermore/, /^Moreover/, /^However/, /^Therefore/, /^Thus/, /^The fact that/, /^In order to/, /^Ultimately/, /^Despite the fact that/, /^With the rise of/, /^As a result of/, /^Given that/, /^This means/, /^It affects/, /^There are some people/, /^Individuals, governments, and international partnerships/, /^Climate change remains/, /^The causes of climate change are rooted in/, /^Effects of a Shifting Planet/, /^Socioeconomic impacts of climate change exert/, /^Combating climate change demands/, /^Immediate action is demanded to combat/,
-            /^In essence/, /^What's more/, /^On the other hand/, /^Concurrently/, /^Subsequently/, /^In particular/, /^It is essential/, /^It is crucial/, /^It is clear that/, /^To summarize/, /^In summary/, /^In a nutshell/, /^Basically/, /^The reason is/, /^The problem is/, /^It's important to understand/, /^It's crucial to acknowledge/, /^One of the main challenges/, /^This article discusses/, /^The primary objective/, /^The study found that/, /^Data suggests that/, /^In light of these findings/, /^The implications of this/, /^It is evident that/, /^Ultimately, the goal is/, /^Addressing these issues/, /^Looking ahead,/
+            /^The world is/, /^Our planet/, /^Every year the earth/, /^Climate change is making things/, /^It is worth noting/, /^The key factor/, /^Rising global temperatures/, /^The dire economic effects/, /^It is important to note/, /^In conclusion/, /^Furthermore/, /^Moreover/, /^However/, /^Therefore/, /^Thus/, /^The fact that/, /^In order to/, /^Ultimately/, /^Despite the fact that/, /^While it may seem/, /^In essence/, /^What's more/, /^On the other hand/, /^Concurrently/, /^Subsequently/, /^In particular/, /^It is essential/, /^It is crucial/, /^It is clear that/, /^To summarize/, /^In summary/
         ];
         sentences.forEach(sentence => {
             const trimmedSentence = sentence.trim();
@@ -516,22 +435,97 @@
                     if (!issues.predictableStartExamples.includes(example)) {
                         issues.predictableStartExamples.push(`"${example}"`);
                     }
-                    break; 
+                    break;
                 }
             }
         });
-
         if (/[;:]/.test(section)) {
             issues.hasColonsOrSemicolons = true;
         }
-
         return issues;
     };
 
+    // Helper: Synonym and complexity section
+    async function getDictionaryData(word) {
+        try {
+            const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+            if (!response.ok) throw new Error('No dictionary data');
+            const data = await response.json();
+            return data[0];
+        } catch (e) {
+            return null;
+        }
+    }
 
-    const buildComprehensivePrompt = (section, tone, isPersonal, pastParaphrases, sectionAnalysis) => {
+    function scoreWordComplexity(word, dictData) {
+        if (!word) return 0;
+        let complexity = 0;
+        if (word.length > 7) complexity += 1;
+        const syllables = word.split(/[^aeiouy]+/i).filter(Boolean).length;
+        if (syllables >= 3) complexity += 1;
+        if (dictData && dictData.meanings && dictData.meanings.length) {
+            const parts = dictData.meanings.map(m => m.partOfSpeech);
+            if (parts.includes('adjective') || parts.includes('adverb')) complexity += 1;
+        }
+        return complexity;
+    }
+
+    async function getSimplestSynonym(word, contextSection) {
+        const dictData = await getDictionaryData(word);
+        if (!dictData || !dictData.meanings) return null;
+        let synonyms = [];
+        for (const meaning of dictData.meanings) {
+            if (Array.isArray(meaning.synonyms)) {
+                synonyms = synonyms.concat(meaning.synonyms);
+            }
+        }
+        synonyms = [...new Set(synonyms)];
+        const origScore = scoreWordComplexity(word, dictData);
+        let best = { word, score: origScore };
+        for (const syn of synonyms) {
+            if (!syn.match(/^[a-zA-Z]+$/)) continue;
+            const synDict = await getDictionaryData(syn);
+            const synScore = scoreWordComplexity(syn, synDict);
+            if (synScore < best.score && contextSection.toLowerCase().includes(syn.toLowerCase())) {
+                best = { word: syn, score: synScore };
+            }
+        }
+        if (best.word !== word) return best.word;
+        return null;
+    }
+
+    async function simplifySectionWords(textSection, contextSection) {
+        const words = textSection.match(/\b\w+\b/g) || [];
+        const checked = new Set();
+        let newText = textSection;
+        for (const w of words) {
+            const lower = w.toLowerCase();
+            if (checked.has(lower)) continue;
+            checked.add(lower);
+            if (w.length > 7 || w.match(/[A-Z]/) || w.match(/[aeiou]{3,}/i)) {
+                const simple = await getSimplestSynonym(lower, contextSection);
+                if (simple && simple !== lower) {
+                    const reg = new RegExp("\\b" + w + "\\b", "gi");
+                    newText = newText.replace(reg, simple);
+                }
+            }
+        }
+        return newText;
+    }
+
+    // Split input into dictionary of sections
+    function splitInputToSectionDict(text) {
+        const arr = text.split(/\n\s*\n+/).filter(s => s.trim());
+        const dict = {};
+        arr.forEach((content, idx) => {
+            dict[`section${idx + 1}`] = content.trim();
+        });
+        return dict;
+    }
+
+    // Prompt generator using full input as a dictionary and section text
+    function buildComprehensivePrompt(sectionName, allSectionsDict, section, tone, isPersonal, pastParaphrases, sectionAnalysis) {
         const toneInstruction = `Maintain a ${tone} tone${isPersonal ? ' using a first-person perspective (e.g., "I believe," "we must," "our responsibility").' : ' using a general, objective, and neutral perspective.'}`;
-        
         let contextInstruction = '';
         if (pastParaphrases && pastParaphrases.length > 0) {
             const recentParaphrases = pastParaphrases.slice(-3); 
@@ -540,240 +534,229 @@
         Previous humanized text sections: "${recentParaphrases.join('\n\n')}"
         Ensure the new section flows naturally from these. **DO NOT** reuse specific phrasing or sentence structures. Use *fresh synonyms* and *novel sentence constructions*.`;
         }
-
         let specificRefinementInstruction = '';
         if (sectionAnalysis.hasParticipialPhrase && sectionAnalysis.participialExamples.length > 0) {
             specificRefinementInstruction += `
-            * **ABSOLUTELY RESTRUCTURE AND ELIMINATE ALL PARTICIPIAL PHRASES.** This is a critical requirement. Rewrite phrases like ${sectionAnalysis.participialExamples.join(', ')} as full, independent clauses or by splitting the original sentence into two or more clearer sentences. For example, instead of "The man, *walking quickly*, tripped," write "The man walked quickly and then he tripped," or "The man was walking quickly. He tripped."`;
+            * **ABSOLUTELY RESTRUCTURE AND ELIMINATE ALL PARTICIPIAL PHRASES.** This is a critical requirement. Rewrite phrases like ${sectionAnalysis.participialExamples.join(', ')} as full, independent clauses.`;
         }
         if (sectionAnalysis.hasPredictableStart && sectionAnalysis.predictableStartExamples.length > 0) {
             specificRefinementInstruction += `
             * **VARY SENTENCE BEGINNINGS.** Avoid predictable starts like ${sectionAnalysis.predictableStartExamples.join(', ')}. Make every sentence start differently.`;
         }
         if (specificRefinementInstruction) {
-             specificRefinementInstruction = `\n        **SECTION-SPECIFIC REFINEMENTS:**` + specificRefinementInstruction;
+            specificRefinementInstruction = `\n        **SECTION-SPECIFIC REFINEMENTS:**` + specificRefinementInstruction;
         }
-
         const originalWordCount = section.trim().split(/\s+/).length;
-        // Adjusted target word count range to be stricter and explicit
-        const targetMinWords = Math.round(originalWordCount * 0.90); // Stricter range
-        const targetMaxWords = Math.round(originalWordCount * 1.10); // Stricter range
+        const targetMinWords = Math.round(originalWordCount * 0.90); 
+        const targetMaxWords = Math.round(originalWordCount * 1.10);
+        const dictString = JSON.stringify(allSectionsDict, null, 2);
+        return `
+**CONTEXT:**
+The original text is split into sections and provided as a JavaScript-style dictionary. Each key is the section name, each value is the text for that section.
+Section dictionary:
+${dictString}
 
-        const keywordsAndProperNounsToRetain = [
-            'climate change', 'humanity', '21st century', 'temperature', 'precipitation', 
-            'wind patterns', 'Earth\'s climate system', 'anthropogenic activities', 'greenhouse gases', 
-            'industrial processes', 'transportation', 'deforestation', 'scientific consensus', 
-            'human influence', 'global climate', 'catastrophic consequences', 'ecosystems', 'economies', 
-            'societies', 'global warming', 'sea levels', 'extreme weather events', 'carbon dioxide (CO₂)',
-            'methane (CH₄)', 'nitrous oxide (N₂O)', 'fossil fuels', 'renewable energy', 'biodiversity', 'natural resources', 'public health',
-            'policy frameworks', 'international cooperation', 'sustainable development', 'mitigation',
-            'adaptation', 'economic impacts', 'social equity', 'IPCC', 'Paris Agreement', 
-            'heatwaves', 'droughts', 'hurricanes', 'floods', 'polar ice caps', 'glaciers', 'coastal communities',
-            'small island nations', 'vector-borne diseases', 'respiratory issues', 'food insecurity',
-            'vulnerable populations', 'developing countries', 'agricultural practices', 'land-use changes',
-            'global stability', 'security', 'economic cost of inaction', 'preventive measures',
-            'energy efficiency', 'reforestation', 'sustainable land use', 'resilient infrastructure',
-            'early warning systems', 'climate-smart agriculture', 'political will', 'public engagement',
-            'equitable resource distribution', 'present reality', 'unified global response', 'science', 'innovation',
-            'moral responsibility', 'sustainable', 'resilient', 'just world', 'current and future generations',
-            'combustion', 'United Nations Intergovernmental Panel' // Added specifically from the new input
-        ];
-        
-        let keywordInstruction = `
-        **CRITICAL: PRESERVE ALL ORIGINAL MEANING AND FACTS EXACTLY.** The humanized text MUST convey the IDENTICAL message as the original, rephrased. Keep all core details, proper nouns (e.g., "IPCC," "Paris Agreement," specific gas names like "CO₂"), and key concepts. **DO NOT simplify or alter specific technical terms or proper nouns unless explicitly instructed by the forbidden words list, or if the original is grammatically incorrect.**`;
+You are to paraphrase and restructure ONLY the section named "${sectionName}", using the full dictionary as context for coherence and natural flow. 
+Prioritize natural, human-like language and coherence, but ALWAYS preserve the exact factual meaning and context of the section in relation to the rest.
 
-        return `**GOLDEN RULE: DO NOT, under ANY circumstances, introduce ANY information, facts, or concepts not EXPLICITLY present in the "TEXT TO REWRITE" section below. Your output must be a pure rephrasing of the provided text, and nothing more. This is a STRICT information-preservation task, not an information-generation task. Do not make up any new details or draw on any outside knowledge.**
+**TEXT TO REWRITE (ONE SINGLE SECTION):**
+"${section}"
 
-        Your sole response MUST be the rewritten text for the provided section. NO commentary, NO intros, NO filler, NO questions, NO conversational phrases like "here's the rewritten text".
+**MANDATORY RULES (STRICTLY ADHERE TO THESE):**
 
-        **TEXT TO REWRITE (ONE SINGLE SECTION/PARAGRAPH):**
-        "${section}"
+1.  **SIMPLIFY WORDS AND COMPLETELY RESTRUCTURE SENTENCES.** Use plain, everyday language. Avoid unnecessary complex vocabulary or jargon. When possible, use simpler synonyms for complex words, but ONLY if they fit the context and preserve meaning. If context would be lost, keep the original word.
+2.  **STRICT WORD COUNT & CONTENT INTEGRITY.** Output for this section MUST be between **${targetMinWords} and ${targetMaxWords} words** (within +/- 10% of original ${originalWordCount} words).
+3.  **PUNCTUATION AND TRANSITIONS.** **USE ONLY CONVENTIONAL PUNCTUATION: PERIODS (.), COMMAS (,), EXCLAMATION MARKS (!), AND QUESTION MARKS (?). ABSOLUTELY NO COLONS (:) OR SEMICOLONS (;).** 
+${specificRefinementInstruction}
+4.  **TONE.** ${toneInstruction}
+${contextInstruction}
+5.  **SINGLE PARAGRAPH OUTPUT.** The output for THIS specific section MUST be a single, continuous paragraph with NO newlines or extra spaces that create new paragraphs within it. **DO NOT introduce new content.**
 
-        **MANDATORY RULES (STRICTLY ADHERE TO THESE):**
+**Your response MUST be ONLY the rewritten text for this single section, nothing else.**`;
+    }
 
-        1.  **SIMPLIFY WORDS AND COMPLETELY RESTRUCTURE SENTENCES.** Use plain, everyday language. Avoid unnecessary complex vocabulary or jargon.
-            **ABSOLUTELY DO NOT USE ANY OF THESE WORDS (find direct, simpler synonyms, or restructure the sentence completely):** ${FORBIDDEN_WORDS_FOR_AI_PROMPT.map(w => `'${w}'`).join(', ')}.
-            **Example for forbidden word "transcends":** Instead of "This issue transcends boundaries," write "This issue goes beyond borders," or "This issue affects areas outside of typical limits."
-            **CRITICAL:** If a simpler, clear synonym cannot be found for a word on the forbidden list, or if replacing it makes the sentence unclear or nonsensical, or if it leads to gibberish, **RETAIN THE ORIGINAL WORD and try to restructure the sentence differently.** Prioritize clarity and meaning above all else. **DO NOT generate random or nonsensical text. The output must be coherent and grammatically sound.**
+    // Individual section review prompt
+    function buildIndividualSectionReviewPrompt(sectionText) {
+        return `**GOLDEN RULE: DO NOT, under ANY circumstances, introduce ANY information, facts, or concepts not EXPLICITLY present in the "TEXT TO REVIEW" section below. Your output must be a pure revision.
 
-        2.  **STRICT WORD COUNT & CONTENT INTEGRITY.** Output for this section MUST be between **${targetMinWords} and ${targetMaxWords} words** (within +/- 10% of original ${originalWordCount} words). **DO NOT add new sentences, remove original sentences, or introduce any new information.** The rewritten text **MUST** contain the exact same number of core facts, ideas, and pieces of information as the original. Focus purely on rephrasing the existing content.
+You are an expert copy editor. Review the provided single paragraph ONLY for the following issues. **Your only output must be the corrected text, with no additional commentary or explanation.**
 
-        3.  **PUNCTUATION AND TRANSITIONS.** **USE ONLY CONVENTIONAL PUNCTUATION: PERIODS (.), COMMAS (,), EXCLAMATION MARKS (!), AND QUESTION MARKS (?). ABSOLUTELY NO COLONS (:) OR SEMICOLONS (;).** **Use transition words and phrases SPARINGLY and NATURALLY, only when necessary for coherence. AVOID excessive use of commas to link unrelated clauses or ideas that should be separate sentences. Focus on clear, concise sentence structures.**
+**STRICT CORRECTIONS ONLY for this single paragraph:**
+* **COHERENCE AND GRAMMAR:** Ensure the text is perfectly coherent, grammatically correct, and makes complete sense. **DO NOT generate random or nonsensical text.** If the text is fundamentally nonsense, return the original.
+* **CONVENTIONAL PUNCTUATION ONLY:** Replace **ALL colons (:) and semicolons (;)** with appropriate conventional punctuation (periods, commas, question marks, exclamation marks). Ensure all others are conventional.
+* **ELIMINATE ALL PARTICIPIAL PHRASES:** Identify and rewrite *every single participial phrase* (e.g., "walking quickly," "being seen," "having done") into clear, full clauses or by splitting sentences.
+* **REMOVE ALL AI COMMENTS/CONVERSATIONAL FILLER:** Ensure there are absolutely no introductory phrases, conversational remarks, questions to the user, or anything that resembles AI interaction.
+* **NO MEANING CHANGE:** Do not change the original meaning, facts, or core information.
+* **NO WORD CHOICE CHANGE (unless directly related to punctuation/grammar fix or specifically from the forbidden list if it slipped through):** Do not re-humanize or rephrase sentences beyond punctuation/grammar.
+* **NO LENGTH CHANGE:** Do not significantly change the length of the text.
+* **SINGLE PARAGRAPH OUTPUT:** The output MUST remain a single paragraph. DO NOT introduce newlines or merge with other (non-existent) paragraphs.
 
-        ${specificRefinementInstruction}
+**TEXT TO REVIEW (SINGLE PARAGRAPH):**
+"${sectionText}"
 
-        ${keywordInstruction}
+**FINAL OUTPUT (SINGLE PARAGRAPH):** ONLY the corrected text, with no preamble or commentary.`;
+    }
 
-        4.  **SINGLE PARAGRAPH OUTPUT.** The output for THIS specific section MUST be a single, continuous paragraph with NO newlines or extra spaces that create new paragraphs within it. **DO NOT introduce new information or random text.** Prioritize clear, coherent meaning.
-
-        5.  **TONE.** ${toneInstruction}
-
-        ${contextInstruction}
-
-        **Your response MUST be ONLY the rewritten text for this single section, nothing else.**`;
-    };
-
-
-    // Prompt for individual section review (now applied to each section after initial humanization)
-    const buildIndividualSectionReviewPrompt = (sectionText) => {
-        return `**GOLDEN RULE: DO NOT, under ANY circumstances, introduce ANY information, facts, or concepts not EXPLICITLY present in the "TEXT TO REVIEW" section below. Your output must be a pure rephrasing of the provided text, and nothing more. This is a STRICT information-preservation task, not an information-generation task. Do not make up any new details or draw on any outside knowledge.**
-
-        You are an expert copy editor. Review the provided single paragraph ONLY for the following issues. **Your only output must be the corrected text, with no additional commentary or explanation.**
-
-        **STRICT CORRECTIONS ONLY for this single paragraph:**
-        * **COHERENCE AND GRAMMAR:** Ensure the text is perfectly coherent, grammatically correct, and makes complete sense. **DO NOT generate random or nonsensical text.** If the text is fundamentally incoherent, try to make it coherent while retaining its original meaning and *only* the information originally present.
-        * **CONVENTIONAL PUNCTUATION ONLY:** Replace **ALL colons (:) and semicolons (;)** with appropriate conventional punctuation (periods, commas, question marks, exclamation marks). Ensure all other punctuation is standard and correctly used.
-        * **ELIMINATE ALL PARTICIPIAL PHRASES:** Identify and rewrite *every single participial phrase* (e.g., "walking quickly," "being seen," "having done") into clear, full clauses or by splitting sentences. This is a top priority.
-        * **REMOVE ALL AI COMMENTS/CONVERSATIONAL FILLER:** Ensure there are absolutely no introductory phrases, conversational remarks, questions to the user, or anything that resembles AI interaction (e.g., "Here is the text," "I can help with that," "Let me know"). The output must be the pure, clean text.
-        * **NO MEANING CHANGE:** Do not change the original meaning, facts, or core information.
-        * **NO WORD CHOICE CHANGE (unless directly related to punctuation/grammar fix or specifically from the forbidden list if it slipped through):** Do not re-humanize or rephrase sentences beyond fixing the punctuation/participial issues. Only change words if it's a direct grammatical correction, spelling error, or if a forbidden word (from the \`FORBIDDEN_WORDS_COMPREHENSIVE\` list) somehow slipped into the output.
-        * **NO LENGTH CHANGE:** Do not significantly change the length of the text.
-        * **SINGLE PARAGRAPH OUTPUT:** The output MUST remain a single paragraph. DO NOT introduce newlines or merge with other (non-existent) paragraphs.
-
-        **TEXT TO REVIEW (SINGLE PARAGRAPH):**
-        "${sectionText}"
-
-        **FINAL OUTPUT (SINGLE PARAGRAPH):** ONLY the corrected text, with no preamble or commentary.`;
-    };
-
-
+    // Main processText function
     const processText = async () => {
-  const text = $('input').value.trim();
-  if (!text) {
-    alert('Please enter text to humanize.');
-    return;
-  }
-
-  const processBtn = $('process');
-  const progressContainer = document.querySelector('.progress');
-  const progressBar = document.querySelector('.progress-bar');
-  const statusEl = $('status');
-  const outputEl = $('output');
-  const jsonOutputEl = $('jsonOutput');
-  const copyJsonButton = $('copyJson');
-
-  processBtn.disabled = true;
-  processBtn.textContent = 'Processing...';
-  progressContainer.style.display = 'block';
-  progressBar.style.width = '0%';
-  statusEl.textContent = 'Initializing...';
-  outputEl.value = '';
-  jsonOutputEl.textContent = '';
-  jsonOutputEl.style.display = 'none';
-  if (copyJsonButton) {
-    copyJsonButton.style.display = 'none';
-  }
-
-  try {
-    const tone = $('tone').value;
-    const isPersonal = $('perspective').checked;
-    console.log("Is Personal Mode:", isPersonal);
-
-    const rawSectionsArray = text.split(/\n\s*\n+/).filter(s => s.trim());
-    if (rawSectionsArray.length === 0) {
-      statusEl.textContent = 'No valid text sections found.';
-      throw new Error('No valid text sections found.');
-    }
-
-    const originalInputDict = {};
-    rawSectionsArray.forEach((content, index) => {
-      originalInputDict[`section_${index + 1}`] = content;
-    });
-
-    const humanizedOutputDict = {};
-    const finalHumanizedSections = [];
-
-    for (let i = 0; i < rawSectionsArray.length; i++) {
-      const sectionKey = `section_${i + 1}`;
-      const originalSectionContent = rawSectionsArray[i];
-
-      statusEl.textContent = `Humanizing section ${i + 1} of ${rawSectionsArray.length}...`;
-
-      const pastParaphrases = finalHumanizedSections;
-      const sectionAnalysis = analyzeSectionForPatterns(originalSectionContent);
-      const humanizePrompt = buildComprehensivePrompt(originalSectionContent, tone, isPersonal, pastParaphrases, sectionAnalysis);
-
-      let humanizedContent = null;
-      try {
-        humanizedContent = await apiCall(humanizePrompt, 0, 1.9);
-      } catch (apiError) {
-        console.error(`Initial humanization API call failed for section ${i + 1}:`, apiError);
-      }
-
-      if (!humanizedContent || isNonsense(humanizedContent)) {
-        console.warn(`Initial humanization for section ${i + 1} failed/nonsense. Retrying...`);
-        statusEl.textContent = `Retrying humanization for section ${i + 1}...`;
-        try {
-          humanizedContent = await apiCall(humanizePrompt, 0, 1.0);
-          if (isNonsense(humanizedContent)) {
-            console.warn(`Second humanization attempt for section ${i + 1} also failed/nonsense. Using original content.`);
-            humanizedContent = originalSectionContent;
-          }
-        } catch (retryError) {
-          console.error(`Retry humanization API call failed for section ${i + 1}:`, retryError);
-          humanizedContent = originalSectionContent;
+        const text = $('input').value.trim();
+        if (!text) {
+            alert('Please enter text to humanize.');
+            return;
         }
-      }
+        const processBtn = $('process');
+        const progressContainer = document.querySelector('.progress');
+        const progressBar = document.querySelector('.progress-bar');
+        const statusEl = $('status');
+        const outputEl = $('output');
+        const jsonOutputEl = $('jsonOutput');
+        const copyJsonButton = $('copyJson');
+        processBtn.disabled = true;
+        processBtn.textContent = 'Processing...';
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        statusEl.textContent = 'Initializing...';
+        outputEl.value = '';
+        jsonOutputEl.textContent = '';
+        jsonOutputEl.style.display = 'none';
+        if (copyJsonButton) {
+            copyJsonButton.style.display = 'none';
+        }
+        try {
+            const tone = $('tone').value;
+            const isPersonal = $('perspective').checked;
+            const allSectionsDict = splitInputToSectionDict(text);
+            const sectionNames = Object.keys(allSectionsDict);
+            const originalInputDict = { ...allSectionsDict };
+            const humanizedOutputDict = {};
+            const finalHumanizedSections = [];
+            for (let i = 0; i < sectionNames.length; i++) {
+                const sectionKey = sectionNames[i];
+                const originalSectionContent = allSectionsDict[sectionKey];
+                statusEl.textContent = `Simplifying vocabulary for ${sectionKey}...`;
+                const simplifiedSection = await simplifySectionWords(originalSectionContent, text);
+                statusEl.textContent = `Humanizing ${sectionKey} of ${sectionNames.length}...`;
+                const pastParaphrases = finalHumanizedSections;
+                const sectionAnalysis = analyzeSectionForPatterns(simplifiedSection);
+                const humanizePrompt = buildComprehensivePrompt(sectionKey, allSectionsDict, simplifiedSection, tone, isPersonal, pastParaphrases, sectionAnalysis);
+                let humanizedContent = null;
+                try {
+                    humanizedContent = await apiCall(humanizePrompt, 0, 1.9);
+                } catch (apiError) {
+                    humanizedContent = null;
+                }
+                if (!humanizedContent || isNonsense(humanizedContent)) {
+                    statusEl.textContent = `Retrying humanization for ${sectionKey}...`;
+                    try {
+                        humanizedContent = await apiCall(humanizePrompt, 0, 1.0);
+                        if (isNonsense(humanizedContent)) {
+                            humanizedContent = simplifiedSection;
+                        }
+                    } catch (retryError) {
+                        humanizedContent = simplifiedSection;
+                    }
+                }
+                humanizedContent = sanitizeAIOutput(humanizedContent);
+                humanizedContent = enforceForbiddenWords(humanizedContent);
+                statusEl.textContent = `Reviewing ${sectionKey} for punctuation and style...`;
+                const reviewPrompt = buildIndividualSectionReviewPrompt(humanizedContent);
+                let reviewedContent = null;
+                try {
+                    reviewedContent = await apiCall(reviewPrompt, 0, 0.1);
+                } catch (reviewApiError) {
+                    reviewedContent = humanizedContent;
+                }
+                if (!reviewedContent || isNonsense(reviewedContent)) {
+                    reviewedContent = humanizedContent;
+                } else {
+                    reviewedContent = sanitizeAIOutput(reviewedContent);
+                }
+                humanizedOutputDict[sectionKey] = reviewedContent;
+                finalHumanizedSections.push(reviewedContent);
+                outputEl.value = finalHumanizedSections.join('\n\n');
+                const words = outputEl.value.trim().match(/\S+/g) || [];
+                $('output-count').textContent = `${words.length} words`;
+                progressBar.style.width = `${Math.round(((i + 1) / sectionNames.length) * 100)}%`;
+            }
+            statusEl.textContent = 'All sections processed and reviewed. Assembling final output.';
+            progressBar.style.width = '100%';
+            outputEl.value = finalHumanizedSections.join('\n\n');
+            const finalWords = outputEl.value.trim().match(/\S+/g) || [];
+            $('output-count').textContent = `${finalWords.length} words`;
+            jsonOutputEl.textContent = JSON.stringify(humanizedOutputDict, null, 2);
+            jsonOutputEl.style.display = 'block';
+            if (copyJsonButton) {
+                copyJsonButton.style.display = 'inline-block';
+            }
+            statusEl.textContent = 'Humanization complete!';
+        } catch (error) {
+            outputEl.value = `Error: ${error.message}`;
+            statusEl.textContent = `Failed: ${error.message.substring(0, 100)}...`;
+        } finally {
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+                processBtn.disabled = false;
+                processBtn.textContent = 'Humanize Text';
+                if (!statusEl.textContent.startsWith('Failed:')) {
+                    statusEl.textContent = '';
+                }
+            }, 2000);
+        }
+    };
 
-      humanizedContent = sanitizeAIOutput(humanizedContent);
-      humanizedContent = enforceForbiddenWords(humanizedContent);
-
-      statusEl.textContent = `Reviewing section ${i + 1} for punctuation and style...`;
-      const reviewPrompt = buildIndividualSectionReviewPrompt(humanizedContent);
-      let reviewedContent = null;
-      try {
-        reviewedContent = await apiCall(reviewPrompt, 0, 0.1);
-      } catch (reviewApiError) {
-        console.error(`Individual review API call failed for section ${i + 1}:`, reviewApiError);
-      }
-
-      if (!reviewedContent || isNonsense(reviewedContent)) {
-        console.warn(`Individual review for section ${i + 1} failed/nonsense. Using prior humanized content.`);
-        reviewedContent = humanizedContent;
-      } else {
-        reviewedContent = sanitizeAIOutput(reviewedContent);
-      }
-
-      humanizedOutputDict[sectionKey] = reviewedContent;
-      finalHumanizedSections.push(reviewedContent);
-
-      outputEl.value = finalHumanizedSections.join('\n\n');
-      const words = outputEl.value.trim().match(/\S+/g) || [];
-      $('output-count').textContent = `${words.length} words`;
-
-      progressBar.style.width = `${Math.round(((i + 1) / rawSectionsArray.length) * 100)}%`;
-    }
-
-    statusEl.textContent = 'All sections processed and reviewed. Assembling final output.';
-    progressBar.style.width = '100%';
-
-    outputEl.value = finalHumanizedSections.join('\n\n');
-
-    const finalWords = outputEl.value.trim().match(/\S+/g) || [];
-    $('output-count').textContent = `${finalWords.length} words`;
-
-    jsonOutputEl.textContent = JSON.stringify(humanizedOutputDict, null, 2);
-    jsonOutputEl.style.display = 'block';
-    if (copyJsonButton) {
-      copyJsonButton.style.display = 'inline-block';
-    }
-    statusEl.textContent = 'Humanization complete!';
-  } catch (error) {
-    outputEl.value = `Error: ${error.message}`;
-    statusEl.textContent = `Failed: ${error.message.substring(0, 100)}...`;
-    console.error('Processing error details:', error);
-  } finally {
-    setTimeout(() => {
-      progressContainer.style.display = 'none';
-      processBtn.disabled = false;
-      processBtn.textContent = 'Humanize Text';
-      if (!statusEl.textContent.startsWith('Failed:')) {
-        statusEl.textContent = '';
-      }
-    }, 2000);
-  }
-};
-
+    // UI setup
+    const init = () => {
+        const processButton = $('process');
+        if (!processButton) {
+            console.error("Error: 'process' button not found in the DOM. Check its ID in HTML.");
+            return;
+        }
+        ['input', 'output'].forEach(id => {
+            const el = $(id);
+            const counter = $(`${id}-count`);
+            const updateCount = () => {
+                const words = el.value.trim().match(/\S+/g) || [];
+                counter.textContent = `${words.length} words`;
+            };
+            el.addEventListener('input', updateCount);
+            updateCount();
+        });
+        const outputHeaderEl = $('area-header-output'); 
+        if (outputHeaderEl) { 
+            const copyJsonButton = document.createElement('button');
+            copyJsonButton.id = 'copyJson';
+            copyJsonButton.textContent = 'Copy JSON';
+            copyJsonButton.style.marginLeft = '10px';
+            copyJsonButton.style.display = 'none'; 
+            outputHeaderEl.appendChild(copyJsonButton); 
+            copyJsonButton.addEventListener('click', async () => {
+                const jsonOutputEl = $('jsonOutput');
+                if (!jsonOutputEl.textContent) return;
+                try {
+                    await navigator.clipboard.writeText(jsonOutputEl.textContent);
+                    copyJsonButton.textContent = 'Copied!';
+                    setTimeout(() => copyJsonButton.textContent = 'Copy JSON', 1500);
+                } catch (err) {
+                    alert('Failed to copy JSON.');
+                }
+            });
+        }
+        const copyTextButton = $('copy'); 
+        if (copyTextButton) { 
+            copyTextButton.addEventListener('click', async () => {
+                const output = $('output');
+                if (!output.value) return;
+                try {
+                    await navigator.clipboard.writeText(output.value);
+                    copyTextButton.textContent = 'Copied!';
+                    setTimeout(() => copyTextButton.textContent = 'Copy', 1500);
+                } catch (err) {
+                    alert('Failed to copy text.');
+                }
+            });
+        }
+        processButton.addEventListener('click', processText);
+    };
     document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
