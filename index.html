@@ -71,60 +71,14 @@
                 </div>
                 <textarea id="output" readonly></textarea>
                 <div class="word-count" id="output-count">0 words</div>
-                <pre id="jsonOutput" style="white-space: pre-wrap; word-wrap: break-word; font-size: 0.8em; background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-top: 10px; display: none;"></pre>
             </div>
         </div>
         <div class="progress"><div class="progress-bar"></div></div>
         <div class="status" id="status"></div>
     </div>
 <script>
-const $ = id => document.getElementById(id);
-const MODELS_TO_TRY = [
-    'llama-3.1-8b-instant','llama3-8b-8192','gemma2-9b-it','mistral-saba-24b','llama3-70b-8192',
-    'meta-llama/llama-4-maverick-17b-128e-instruct','meta-llama/llama-4-scout-17b-16e-instruct','meta-llama/llama-guard-4-12b',
-    'llama-guard-3-8b','meta-llama/llama-prompt-guard-2-22m','meta-llama/llama-prompt-guard-2-86m'
-];
-const FORBIDDEN_WORDS_COMPREHENSIVE = [
-    'exacerbating','unequivocal','mitigate','transcends','stark','dire','exert','fortress','induce','ameliorate','socioeconomic','culminate',
-    'imperative','formidable','subsequently','hitherto','notwithstanding','thereby','thus','hence','whereas','moreover','furthermore','nevertheless',
-    'notable','significant','prevalent','consequently','therefore','delineate','underscore','paramount','pivotal','crucial','comprehensive',
-    'profound','vividly','crippled','waver','confronted','debilitating','susceptible','fluctuations','escalates','compromising','indestructible',
-    'equitable','resilient','resolve','portrayed','vividly','curb','dictates','proactive','bleak','intergovernmental','amplifies','consequences',
-    'rooted','excessive','emission','intensive','deforestation','shifting','frequent','torrential','downpours','crippled','terrain','biodiversity',
-    'strive','waning','outbreaks','debilitating','respiratory','socioeconomic','pose','considerable','susceptible','livelihood','delicacy','vastly',
-    'climatic','fluctuations','scarcity','alongside','triggers','migration','conflict','stability','financial','burden','inaction','inevitably',
-    'incur','escalating','eclipsing','restraints','proactive','encompass','shift','optimizing','re-establishing','promoting','responsible','occupancy',
-    'crucially','cooperation','necessary','curb','pre-industrial','strengthening','infrastructure','resist','disasters','effective','awareness',
-    'systems','agricultural','practices','conserve','resources','significantly','harmony','balanced','distribution','disadvantaged','collective',
-    'pressing','reality','combat','challenge','approached','unified','international','presence','rooted','solid','evidence','innovative','solutions',
-    'universal','responsibility','insurmountable','obstacles','vast','opportunity','establish','sustainable','resilient','just','current and future generations',
-    'proactive','stance','define','sustainable','return','long','fragile','well-being','necessitate','ecstatic','reedeem','utilize','alterations'
-];
-const FORBIDDEN_WORDS_FOR_AI_PROMPT = [
-    'unequivocal','mitigate','transcends','stark','dire','exert','fortress','induce','ameliorate','socioeconomic','culminate','imperative',
-    'formidable','subsequently','hitherto','notwithstanding','thereby','thus','hence','whereas','moreover','furthermore','nevertheless','consequently',
-    'therefore','delineate','underscore','paramount','pivotal','crucial','comprehensive','profound','vividly','crippled','waver','confronted',
-    'debilitating','susceptible','fluctuations','escalates','compromising','indestructible','equitable','resilient','resolve','portrayed','vividly',
-    'curb','dictates','proactive','bleak','intergovernmental','amplifies','consequences','rooted','excessive','emission','intensive','deforestation',
-    'shifting','frequent','torrential','downpours','crippled','terrain','biodiversity','strive','waning','outbreaks','debilitating','respiratory',
-    'socioeconomic','pose','considerable','susceptible','livelihood','delicacy','vastly','climatic','fluctuations','scarcity','alongside','triggers',
-    'migration','conflict','stability','financial','burden','inaction','inevitably','incur','escalating','eclipsing','restraints','proactive',
-    'encompass','shift','optimizing','re-establishing','promoting','responsible','occupancy','crucially','cooperation','necessary','curb',
-    'pre-industrial','strengthening','infrastructure','resist','disasters','effective','awareness','systems','agricultural','practices','conserve',
-    'resources','significantly','harmony','balanced','distribution','disadvantaged','collective','pressing','reality','combat','challenge',
-    'approached','unified','international','presence','rooted','solid','evidence','innovative','solutions','universal','responsibility',
-    'insurmountable','obstacles','vast','opportunity','establish','sustainable','resilient','just','current and future generations','proactive',
-    'stance','define','sustainable','return','long','fragile','well-being','necessitate','ecstatic','reedeem','utilize','alterations'
-];
-
-// Common words to lower complexity (for future expansion, not exhaustive)
-const COMMON_WORDS = new Set([
-    "the","be","to","of","and","a","in","that","have","I","it","for","not","on","with","he","as","you","do","at","this","but","his","by",
-    "from","they","we","say","her","she","or","an","will","my","one","all","would","there","their","what","so","up","out","if","about",
-    "who","get","which","go","me","when","make","can","like","time","no","just","him","know","take","person","into","year","your","good",
-    "some","could","them","see","other","than","then","now","look","only","come","its","over","think","also","back","after","use","two",
-    "how","our","work","first","well","way","even","new","want","because","any","these","give","day","most","us"
-]);
+const $=id=>document.getElementById(id),MODELS_TO_TRY=['llama-3.1-8b-instant','llama3-8b-8192','gemma2-9b-it','mistral-saba-24b','llama3-70b-8192','meta-llama/llama-4-maverick-17b-128e-instruct','meta-llama/llama-4-scout-17b-16e-instruct','meta-llama/llama-guard-4-12b','llama-guard-3-8b','meta-llama/llama-prompt-guard-2-22m','meta-llama/llama-prompt-guard-2-86m'],FORBIDDEN_WORDS_COMPREHENSIVE=['exacerbating','unequivocal','mitigate','transcends','stark','dire','exert','fortress','induce','ameliorate','socioeconomic','culminate','imperative','formidable','subsequently','hitherto','notwithstanding','thereby','thus','hence','whereas','moreover','furthermore','nevertheless','notable','significant','prevalent','consequently','therefore','delineate','underscore','paramount','pivotal','crucial','comprehensive','profound','vividly','crippled','waver','confronted','debilitating','susceptible','fluctuations','escalates','compromising','indestructible','equitable','resilient','resolve','portrayed','vividly','curb','dictates','proactive','bleak','intergovernmental','amplifies','consequences','rooted','excessive','emission','intensive','deforestation','shifting','frequent','torrential','downpours','crippled','terrain','biodiversity','strive','waning','outbreaks','debilitating','respiratory','socioeconomic','pose','considerable','susceptible','livelihood','delicacy','vastly','climatic','fluctuations','scarcity','alongside','triggers','migration','conflict','stability','financial','burden','inaction','inevitably','incur','escalating','eclipsing','restraints','proactive','encompass','shift','optimizing','re-establishing','promoting','responsible','occupancy','crucially','cooperation','necessary','curb','pre-industrial','strengthening','infrastructure','resist','disasters','effective','awareness','systems','agricultural','practices','conserve','resources','significantly','harmony','balanced','distribution','disadvantaged','collective','pressing','reality','combat','challenge','approached','unified','international','presence','rooted','solid','evidence','innovative','solutions','universal','responsibility','insurmountable','obstacles','vast','opportunity','establish','sustainable','resilient','just','current and future generations','proactive','stance','define','sustainable','return','long','fragile','well-being','necessitate','ecstatic','reedeem','utilize','alterations'],FORBIDDEN_WORDS_FOR_AI_PROMPT=['unequivocal','mitigate','transcends','stark','dire','exert','fortress','induce','ameliorate','socioeconomic','culminate','imperative','formidable','subsequently','hitherto','notwithstanding','thereby','thus','hence','whereas','moreover','furthermore','nevertheless','consequently','therefore','delineate','underscore','paramount','pivotal','crucial','comprehensive','profound','vividly','crippled','waver','confronted','debilitating','susceptible','fluctuations','escalates','compromising','indestructible','equitable','resilient','resolve','portrayed','vividly','curb','dictates','proactive','bleak','intergovernmental','amplifies','consequences','rooted','excessive','emission','intensive','deforestation','shifting','frequent','torrential','downpours','crippled','terrain','biodiversity','strive','waning','outbreaks','debilitating','respiratory','socioeconomic','pose','considerable','susceptible','livelihood','delicacy','vastly','climatic','fluctuations','scarcity','alongside','triggers','migration','conflict','stability','financial','burden','inaction','inevitably','incur','escalating','eclipsing','restraints','proactive','encompass','shift','optimizing','re-establishing','promoting','responsible','occupancy','crucially','cooperation','necessary','curb','pre-industrial','strengthening','infrastructure','resist','disasters','effective','awareness','systems','agricultural','practices','conserve','resources','significantly','harmony','balanced','distribution','disadvantaged','collective','pressing','reality','combat','challenge','approached','unified','international','presence','rooted','solid','evidence','innovative','solutions','universal','responsibility','insurmountable','obstacles','vast','opportunity','establish','sustainable','resilient','just','current and future generations','proactive','stance','define','sustainable','return','long','fragile','well-being','necessitate','ecstatic','reedeem','utilize','alterations'];
+const COMMON_WORDS = new Set(['the','be','to','of','and','a','in','that','have','I','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there','their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no','just','him','know','take','person','into','year','your','good','some','could','them','see','other','than','then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well','way','even','new','want','because','any','these','give','day','most','us']);
 
 const apiCall = async (prompt, i=0, temp=1.9, retry=0) => {
     if(i>=MODELS_TO_TRY.length) throw new Error('All models failed.');
@@ -157,7 +111,7 @@ const isNonsense = t => {
         const x=t.match(/[^a-zA-Z0-9\s.,!?'-]/g);
         if(x&&x.length/t.length>.05)return true;
     }
-    if(/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|please note that|as previously mentioned)/i.test(t))return true;
+    if(/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|please note that|as previously mentioned|here is the corrected text|here is your corrected text)/i.test(t))return true;
     if(w.length>10&&!/[.!?]/.test(t))return true;
     return false;
 };
@@ -211,7 +165,6 @@ const enforceForbiddenWords = text => {
     return c;
 };
 
-// Complexity increases for rare, long, multi-syllable or non-common words
 function scoreWordComplexity(w,dictData){
     if(!w)return 0;
     let s=0;
@@ -254,6 +207,7 @@ async function simplifySectionWords(textSection,ctx){
     let newText=textSection;
     for(const w of words){
         const lower=w.toLowerCase();
+        if(FORBIDDEN_WORDS_COMPREHENSIVE.includes(lower))continue;
         if(checked.has(lower))continue;
         checked.add(lower);
         if(w.length>7||/[A-Z]/.test(w)||/[aeiou]{3,}/i.test(w)||!COMMON_WORDS.has(lower)){
@@ -364,10 +318,10 @@ You are an expert copy editor. Review the provided single paragraph ONLY for the
 const processText = async () => {
     const text = $('input').value.trim();
     if(!text){alert('Please enter text to humanize.');return;}
-    const processBtn=$('process'),progressContainer=document.querySelector('.progress'),progressBar=document.querySelector('.progress-bar'),statusEl=$('status'),outputEl=$('output'),jsonOutputEl=$('jsonOutput');
-    processBtn.disabled=true;processBtn.textContent='Processing...';progressContainer.style.display='block';progressBar.style.width='0%';statusEl.textContent='Initializing...';outputEl.value='';jsonOutputEl.textContent='';jsonOutputEl.style.display='none';
+    const processBtn=$('process'),progressContainer=document.querySelector('.progress'),progressBar=document.querySelector('.progress-bar'),statusEl=$('status'),outputEl=$('output');
+    processBtn.disabled=true;processBtn.textContent='Processing...';progressContainer.style.display='block';progressBar.style.width='0%';statusEl.textContent='Initializing...';outputEl.value='';
     try{
-        const tone=$('tone').value,isPersonal=$('perspective').checked,allSectionsDict=splitInputToSectionDict(text),sectionNames=Object.keys(allSectionsDict),humanizedOutputDict={},finalHumanizedSections=[];
+        const tone=$('tone').value,isPersonal=$('perspective').checked,allSectionsDict=splitInputToSectionDict(text),sectionNames=Object.keys(allSectionsDict),finalHumanizedSections=[];
         for(let i=0;i<sectionNames.length;i++){
             const sectionKey=sectionNames[i],originalSectionContent=allSectionsDict[sectionKey];
             statusEl.textContent=`Simplifying vocabulary for ${sectionKey}...`;
@@ -386,14 +340,13 @@ const processText = async () => {
             let reviewedContent=null;
             try{reviewedContent=await apiCall(reviewPrompt,0,0.1);}catch{reviewedContent=humanizedContent;}
             if(!reviewedContent||isNonsense(reviewedContent))reviewedContent=humanizedContent;else reviewedContent=sanitizeAIOutput(reviewedContent);
-            humanizedOutputDict[sectionKey]=reviewedContent;finalHumanizedSections.push(reviewedContent);outputEl.value=finalHumanizedSections.join('\n\n');
+            finalHumanizedSections.push(reviewedContent);outputEl.value=finalHumanizedSections.join('\n\n');
             const words=outputEl.value.trim().match(/\S+/g)||[];$('output-count').textContent=`${words.length} words`;
             progressBar.style.width=`${Math.round(((i+1)/sectionNames.length)*100)}%`;
         }
         statusEl.textContent='All sections processed and reviewed. Assembling final output.';progressBar.style.width='100%';
         outputEl.value=finalHumanizedSections.join('\n\n');
         const finalWords=outputEl.value.trim().match(/\S+/g)||[];$('output-count').textContent=`${finalWords.length} words`;
-        jsonOutputEl.textContent=JSON.stringify(humanizedOutputDict,null,2);jsonOutputEl.style.display='block';
         statusEl.textContent='Humanization complete!';
     }catch(error){
         outputEl.value=`Error: ${error.message}`;statusEl.textContent=`Failed: ${error.message.substring(0,100)}...`;
