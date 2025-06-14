@@ -91,9 +91,7 @@
             left: 2px;
             transition: transform 0.3s;
         }
-        .toggle input:checked {
-            background: var(--primary);
-        }
+        .toggle input:checked { background: var(--primary); }
         .toggle input:checked::before { transform: translateX(20px); }
         .areas {
             display: flex;
@@ -170,10 +168,13 @@
 <body>
     <div class="container">
         <h1 style="font-size:60px;">GPT-100</h1>
-        <p class="disclaimer"><b style="font-size:24px;">Humanize any AI-generated text.</b> <br><br>
-             Still in beta development, expect lots of mistakes. 
-             <br>May change/destroy facts, omit random information, make grammatical mistakes, etc. <br><br><b style="font-size:24px">ALWAYS CHECK!!!</b>
-             <br><br>
+        <p class="disclaimer">
+            <b style="font-size:24px;">Humanize any AI-generated text.</b> <br><br>
+            Still in beta development, expect lots of mistakes. <br>
+            May change/destroy facts, omit random information, make grammatical mistakes, etc. <br><br>
+            <b style="font-size:24px">ALWAYS CHECK!!!</b>
+            <br><br>
+        </p>
         <div class="controls">
             <select id="tone">
                 <option value="professional">Professional</option>
@@ -208,13 +209,57 @@
         <div class="status" id="status"></div>
     </div>
 <script>
-const $=id=>document.getElementById(id);
+const $ = id => document.getElementById(id);
 const CURRENT_USER = 'snjzz38';
 const CURRENT_TIMESTAMP = '2025-06-14 02:58:11';
-const MODELS_TO_TRY=['llama-3.1-8b-instant','llama3-8b-8192','gemma2-9b-it','mistral-saba-24b','llama3-70b-8192','meta-llama/llama-4-maverick-17b-128e-instruct','meta-llama/llama-4-scout-17b-16e-instruct','meta-llama/llama-guard-4-12b','llama-guard-3-8b','meta-llama/llama-prompt-guard-2-22m','meta-llama/llama-prompt-guard-2-86m'];
-const FORBIDDEN_WORDS_COMPREHENSIVE=['exacerbating','unequivocal','mitigate','transcends','stark','dire','exert','fortress','induce','ameliorate','socioeconomic','culminate','imperative','formidable','subsequently','hitherto','notwithstanding','thereby','thus','hence','whereas','moreover','furthermore','nevertheless','notable','significant','prevalent','consequently','therefore','delineate','underscore','paramount','pivotal','crucial','comprehensive','profound','vividly','crippled','waver','confronted','debilitating','susceptible','fluctuations','escalates','compromising','indestructible','equitable','resilient','resolve','portrayed','vividly','curb','dictates','proactive','bleak','intergovernmental','amplifies','consequences','rooted','excessive','emission','intensive','deforestation','shifting','frequent','torrential','downpours','crippled','terrain','biodiversity','strive','waning','outbreaks','debilitating','respiratory','socioeconomic','pose','considerable','susceptible','livelihood','delicacy','vastly','climatic','fluctuations','scarcity','alongside','triggers','migration','conflict','stability','financial','burden','inaction','inevitably','incur','escalating','eclipsing','restraints','proactive','encompass','shift','optimizing','re-establishing','promoting','responsible','occupancy','crucially','cooperation','necessary','curb','pre-industrial','strengthening','infrastructure','resist','disasters','effective','awareness','systems','agricultural','practices','conserve','resources','significantly','harmony','balanced','distribution','disadvantaged','collective','pressing','reality','combat','challenge','approached','unified','international','presence','rooted','solid','evidence','innovative','solutions','universal','responsibility','insurmountable','obstacles','vast','opportunity','establish','sustainable','resilient','just','current and future generations','proactive','stance','define','sustainable','return','long','fragile','well-being','necessitate','ecstatic','reedeem','utilize','alterations'];
-const COMMON_WORDS=new Set(['the','be','to','of','and','a','in','that','have','I','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there','their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no','just','him','know','take','person','into','year','your','good','some','could','them','see','other','than','then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well','way','even','new','want','because','any','these','give','day','most','us']);
-const PROPER_NOUNS=new Set(['climate change','ipcc','paris agreement']);
+const MODELS_TO_TRY = [
+    'llama-3.1-8b-instant',
+    'llama3-8b-8192',
+    'gemma2-9b-it',
+    'mistral-saba-24b',
+    'llama3-70b-8192',
+    'meta-llama/llama-4-maverick-17b-128e-instruct',
+    'meta-llama/llama-4-scout-17b-16e-instruct',
+    'meta-llama/llama-guard-4-12b',
+    'llama-guard-3-8b',
+    'meta-llama/llama-prompt-guard-2-22m',
+    'meta-llama/llama-prompt-guard-2-86m'
+];
+const FORBIDDEN_WORDS_COMPREHENSIVE = [
+    'exacerbating','unequivocal','mitigate','transcends','stark','dire','exert','fortress',
+    'induce','ameliorate','socioeconomic','culminate','imperative','formidable','subsequently',
+    'hitherto','notwithstanding','thereby','thus','hence','whereas','moreover','furthermore',
+    'nevertheless','notable','significant','prevalent','consequently','therefore','delineate',
+    'underscore','paramount','pivotal','crucial','comprehensive','profound','vividly','crippled',
+    'waver','confronted','debilitating','susceptible','fluctuations','escalates','compromising',
+    'indestructible','equitable','resilient','resolve','portrayed','vividly','curb','dictates',
+    'proactive','bleak','intergovernmental','amplifies','consequences','rooted','excessive','emission',
+    'intensive','deforestation','shifting','frequent','torrential','downpours','crippled','terrain',
+    'biodiversity','strive','waning','outbreaks','debilitating','respiratory','socioeconomic','pose',
+    'considerable','susceptible','livelihood','delicacy','vastly','climatic','fluctuations','scarcity',
+    'alongside','triggers','migration','conflict','stability','financial','burden','inaction','inevitably',
+    'incur','escalating','eclipsing','restraints','proactive','encompass','shift','optimizing',
+    're-establishing','promoting','responsible','occupancy','crucially','cooperation','necessary',
+    'curb','pre-industrial','strengthening','infrastructure','resist','disasters','effective','awareness',
+    'systems','agricultural','practices','conserve','resources','significantly','harmony','balanced',
+    'distribution','disadvantaged','collective','pressing','reality','combat','challenge','approached',
+    'unified','international','presence','rooted','solid','evidence','innovative','solutions','universal',
+    'responsibility','insurmountable','obstacles','vast','opportunity','establish','sustainable','resilient',
+    'just','current and future generations','proactive','stance','define','sustainable','return','long',
+    'fragile','well-being','necessitate','ecstatic','reedeem','utilize','alterations'
+];
+const FORBIDDEN_WORDS_FOR_AI_PROMPT = [
+    'unequivocal','mitigate','transcends','alterations'
+];
+const COMMON_WORDS = new Set([
+    'the','be','to','of','and','a','in','that','have','I','it','for','not','on','with','he','as','you','do','at',
+    'this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there',
+    'their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no',
+    'just','him','know','take','person','into','year','your','good','some','could','them','see','other','than','then',
+    'now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well',
+    'way','even','new','want','because','any','these','give','day','most','us'
+]);
+const PROPER_NOUNS = new Set(['climate change','ipcc','paris agreement']);
 
 function splitInputToSectionDict(text) {
     const sections = text.split(/\n\s*\n+/).filter(s => s.trim());
@@ -232,7 +277,7 @@ function sanitizeAIOutput(text) {
         "here's the rewritten text:", "here is the rewritten text:",
         "certainly, here's the revised paragraph:", "of course, here is the updated version:",
         "here is your rewritten paragraph:", "rewritten text:", "your rewritten text:",
-        "here's the rewritten version:", "here's a rewritten version:", 
+        "here's the rewritten version:", "here's a rewritten version:",
         "i have rewritten the text as follows:", "the rewritten text is:",
         "here you go:", "here's the humanized version:", "here's the humanized text:",
         "rewritten as requested:", "here is the rewritten text for section",
@@ -260,94 +305,107 @@ function sanitizeAIOutput(text) {
 
 const isNonsense = (text, originalText) => {
     if (!text || text.trim().length < 10) return true;
-    
     const origWords = originalText.trim().split(/\s+/).length;
     const newWords = text.trim().split(/\s+/).length;
     if (Math.abs(newWords - origWords) > origWords * 0.1) return true;
-    
     const words = text.trim().split(/\s+/);
     const uniqueWords = new Set(words.map(w => w.toLowerCase()));
-    
     if (words.length > 20 && uniqueWords.size / words.length < 0.3) return true;
-    
     if (/[^a-zA-Z0-9\s.,!?'-]/.test(text)) {
         const oddChars = text.match(/[^a-zA-Z0-9\s.,!?'-]/g);
         if (oddChars && oddChars.length / text.length > 0.05) return true;
     }
-    
-    if (/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|please note that|as previously mentioned|here is the corrected text|here is your corrected text)/i.test(text)) return true;
-    
+    if (/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|please note that|as previously mentioned|here is the corrected text|here is your corrected text)/i.test(text))
+        return true;
     if (words.length > 10 && !/[.!?]/.test(text)) return true;
-    
     return false;
 };
 
-const apiCall=async(prompt,i=0,temp=1.9,retry=0)=>{
-    if(i>=MODELS_TO_TRY.length)throw new Error('All models failed.');
-    const m=MODELS_TO_TRY[i];
-    try{
-        const r=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m,messages:[{role:'user',content:prompt}],temperature:temp,top_p:.98,max_tokens:2048})});
-        const d=await r.json();
-        if(!r.ok){
-            const e=d.error||'Unknown error';
-            if(e.includes('maximum context length'))return apiCall(prompt,i+1,temp,0);
-            if(r.status===429){await new Promise(res=>setTimeout(res,3000));return apiCall(prompt,i+1,temp,0);}
-            if(r.status>=500||r.status===404||r.status===403){
-                if(retry<2){await new Promise(res=>setTimeout(res,1500*(retry+1)));return apiCall(prompt,i,temp,retry+1);}
-                return apiCall(prompt,i+1,temp,0);
+const apiCall = async(prompt, i = 0, temp = 1.9, retry = 0) => {
+    if (i >= MODELS_TO_TRY.length) throw new Error('All models failed.');
+    const m = MODELS_TO_TRY[i];
+    try {
+        const r = await fetch('/api/proxy', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({model: m, messages: [{role: 'user', content: prompt}], temperature: temp, top_p: 0.98, max_tokens: 2048})
+        });
+        const d = await r.json();
+        if (!r.ok) {
+            const e = d.error || 'Unknown error';
+            if (e.includes('maximum context length')) return apiCall(prompt, i + 1, temp, 0);
+            if (r.status === 429) { await new Promise(res => setTimeout(res, 3000)); return apiCall(prompt, i + 1, temp, 0); }
+            if (r.status >= 500 || r.status === 404 || r.status === 403) {
+                if (retry < 2) { await new Promise(res => setTimeout(res, 1500 * (retry + 1))); return apiCall(prompt, i, temp, retry + 1); }
+                return apiCall(prompt, i + 1, temp, 0);
             }
             throw new Error(e);
         }
-        return d.choices?.[0]?.message?.content.trim()||null;
-    }catch(e){
-        if(retry<2){await new Promise(res=>setTimeout(res,1500*(retry+1)));return apiCall(prompt,i,temp,retry+1);}
-        return apiCall(prompt,i+1,temp,0);
+        return d.choices?.[0]?.message?.content.trim() || null;
+    } catch (e) {
+        if (retry < 2) { await new Promise(res => setTimeout(res, 1500 * (retry + 1))); return apiCall(prompt, i, temp, retry + 1); }
+        return apiCall(prompt, i + 1, temp, 0);
     }
 };
 
-function buildComprehensivePrompt(sectionName, allSectionsDict, section, tone, isPersonal, pastParaphrases) {
+function buildComprehensivePrompt(sectionName, allSectionsDict, section, tone, isPersonal, pastParaphrases, sectionAnalysis) {
     const wc = section.trim().split(/\s+/).length;
     const min = Math.round(wc * 0.9);
     const max = Math.round(wc * 1.1);
-    
+    const toneInstruction = `Maintain a ${tone} tone${isPersonal ? ' using a first-person perspective (e.g., "I believe," "we must," "our responsibility").' : ' using a general, objective, and neutral perspective.'}`;
+    let contextInstruction = '';
+    if (pastParaphrases && pastParaphrases.length > 0) {
+        const recent = pastParaphrases.slice(-3);
+        contextInstruction = `
+        **PREVIOUS CONTEXT AND STYLE (for flow only):**
+        Previous humanized text sections: "${recent.join('\n\n')}"
+        Ensure the new section flows naturally from these. **DO NOT** reuse specific phrasing or sentence structures. Use fresh synonyms and novel sentence constructions.`;
+    }
+    let specific = '';
+    if (sectionAnalysis && sectionAnalysis.hasParticipialPhrase && sectionAnalysis.participialExamples.length > 0) {
+        specific += `
+            * **ABSOLUTELY RESTRUCTURE AND ELIMINATE ALL PARTICIPIAL PHRASES.** This is critical. Rewrite phrases like ${sectionAnalysis.participialExamples.join(', ')} as full, independent clauses.`;
+    }
+    const dictString = JSON.stringify(allSectionsDict, null, 2);
     return `
-You are an expert editor tasked with humanizing AI-generated text.
+**CONTEXT:**
+The original text is split into sections and provided as a JavaScript-style dictionary. Each key is the section name, each value is the text for that section.
+Section dictionary:
+${dictString}
 
-INPUT SECTION TO REWRITE:
-"""
-${section}
-"""
+You are to paraphrase and restructure ONLY the section named "${sectionName}", using the full dictionary as context for coherence and natural flow.
+CRITICAL: Preserve ALL key details, facts, and statistics. The output MUST contain the same information density as the input.
 
-REQUIREMENTS:
+**TEXT TO REWRITE (ONE SINGLE SECTION):**
+"${section}"
 
-1. WORD COUNT IS CRITICAL: Output MUST be between ${min} and ${max} words.
+**MANDATORY RULES (STRICTLY ADHERE TO THESE):**
 
-2. RESTRUCTURE AT LEAST 60% OF SENTENCES while preserving ALL information:
-   - Split long sentences into shorter ones
-   - Combine related short sentences
-   - Vary sentence beginnings
-   - Change between active/passive voice
-   - Reorganize clauses
-   BUT preserve every fact, number, and key detail exactly.
+1. **WORD COUNT IS CRITICAL:** Output MUST be between ${min} and ${max} words (±10% of the original ${wc} words).
 
-3. SIMPLIFY LANGUAGE:
-   - Use simpler synonyms where meaning won't be lost
-   - Keep all technical terms and proper nouns unchanged
-   - Break down complex ideas into clearer statements
-   - Remove redundancy and wordiness
+2. **RESTRUCTURE AT LEAST 60% OF SENTENCES:** Rewrite at least 60% of sentences with fresh structure while preserving ALL information:
+   - Split long sentences into shorter ones.
+   - Combine related short sentences.
+   - Vary sentence beginnings.
+   - Change between active and passive voice.
+   - Reorganize clauses.
+   BUT do not lose any facts, numbers, or key details.
+
+3. **SIMPLIFY AND CLARIFY:** 
+   - Use simpler synonyms where possible.
+   - Keep technical terms and proper nouns unchanged.
+   - Break down complex ideas into clearer statements.
+   - Remove redundancy.
    BUT maintain all specific information.
 
-4. USE ONLY THESE PUNCTUATION MARKS: . , ! ?
+4. **USE ONLY CONVENTIONAL PUNCTUATION:** Only use periods (.), commas (,), exclamation marks (!), and question marks (?).
 
-5. MAINTAIN ${tone.toUpperCase()} TONE using ${isPersonal ? 'first-person perspective (I, we, our)' : 'objective perspective'}.
+${specific}
+5. **TONE:** ${toneInstruction}
+${contextInstruction}
+6. **SINGLE PARAGRAPH OUTPUT:** The output MUST be a single, continuous paragraph with no line breaks or section labels.
 
-6. REMOVE ALL AI LANGUAGE patterns like "here is the rewritten text" or "as an AI model".
-
-7. ELIMINATE ANY PARTICIPIAL PHRASES at sentence starts.
-
-8. OUTPUT AS A SINGLE PARAGRAPH with no line breaks or section labels.
-
-Return ONLY the rewritten text, no commentary.`;
+Return ONLY the rewritten text.`;
 }
 
 async function finalGrammarCleanup(text) {
@@ -355,28 +413,23 @@ async function finalGrammarCleanup(text) {
 As an expert editor, fix ONLY these issues in the text:
 
 1. REMOVE ALL AI ARTIFACTS:
-   - Remove "here is the text", "section N:", etc.
-   - Remove meta-commentary
-   - Remove section labels
+   - Remove phrases like "here is the rewritten text", "section N:", etc.
+   - Remove meta-commentary and section labels.
 
 2. FIX GRAMMAR AND CLARITY:
-   - Fix grammar, spelling, punctuation
-   - Use only . , ! ?
-   - Fix awkward phrasing
-   - Keep all facts unchanged
+   - Correct grammar, spelling, and punctuation.
+   - Use only periods (.), commas (,), exclamation marks (!), and question marks (?).
+   - Fix awkward phrasing without changing any facts.
 
 3. CLEAN STRUCTURE:
-   - Remove participial phrases at starts
-   - Fix run-on sentences
-   - Join fragments
-   - Keep paragraph breaks
+   - Remove participial phrases at the beginning of sentences.
+   - Fix run-on sentences and join fragments logically.
+   - Preserve paragraph breaks.
 
 DO NOT:
-- Change meanings
-- Remove information
-- Add content
-- Change key terms
-- Add commentary
+- Alter the meaning or remove any information.
+- Change key terms or proper nouns.
+- Add any commentary.
 
 Input:
 """
@@ -384,12 +437,10 @@ ${text}
 """
 
 Return ONLY the cleaned text.`;
-
     let cleaned = '';
     try {
         cleaned = await apiCall(prompt, 0, 0.1);
         cleaned = sanitizeAIOutput(cleaned);
-        
         const origWords = text.trim().split(/\s+/).length;
         const newWords = cleaned.trim().split(/\s+/).length;
         if (Math.abs(newWords - origWords) > origWords * 0.1) {
@@ -401,77 +452,105 @@ Return ONLY the cleaned text.`;
     return cleaned;
 }
 
+function removeParticipialPhrases(text) {
+    return text.replace(/\b([A-Za-z]+ed|[A-Za-z]+ing)\b[^,.!?]*,\s+/g, '');
+}
+
+function analyzeSectionForPatterns(section) {
+    const issues = { hasParticipialPhrase: false, participialExamples: [] };
+    const pr = /(\b\w+(?:ing|ed|en)\b[^.!?]*, )/gi;
+    let m;
+    (section.match(/[^.!?]+[.!?]*/g) || [section]).forEach(sentence => {
+        while ((m = pr.exec(sentence)) !== null) {
+            const p = m[1].trim();
+            if (p.length > 3) {
+                issues.hasParticipialPhrase = true;
+                if (!issues.participialExamples.includes(p.replace(/,$/, '')))
+                    issues.participialExamples.push(`"${p.replace(/,$/, '')}"`);
+            }
+        }
+    });
+    return issues;
+}
+
 const processText = async () => {
     const text = $('input').value.trim();
     if (!text) {
         alert('Please enter text to humanize.');
         return;
     }
-    
     const metadata = `Processing Date (UTC): ${CURRENT_TIMESTAMP}\nUser: ${CURRENT_USER}\n\n`;
-    
     const processBtn = $('process');
     const progressContainer = document.querySelector('.progress');
     const progressBar = document.querySelector('.progress-bar');
     const statusEl = $('status');
     const outputEl = $('output');
-    
     processBtn.disabled = true;
     processBtn.textContent = 'Processing...';
     progressContainer.style.display = 'block';
     progressBar.style.width = '0%';
     statusEl.textContent = 'Initializing...';
     outputEl.value = '';
-    
     try {
         const tone = $('tone').value;
         const isPersonal = $('perspective').checked;
-        const sectionsDict = splitInputToSectionDict(text);
-        const sectionNames = Object.keys(sectionsDict);
-        const finalSections = [];
-        
+        const allSectionsDict = splitInputToSectionDict(text);
+        const sectionNames = Object.keys(allSectionsDict);
+        const finalHumanizedSections = [];
         for (let i = 0; i < sectionNames.length; i++) {
-            const sectionName = sectionNames[i];
-            const originalContent = sectionsDict[sectionName];
-            
-            statusEl.textContent = `Processing section ${i + 1} of ${sectionNames.length}...`;
-            
-            let humanizedContent = await apiCall(
-                buildComprehensivePrompt(sectionName, sectionsDict, originalContent, tone, isPersonal, finalSections),
-                0, 1.9
-            );
-            
-            if (!humanizedContent || isNonsense(humanizedContent, originalContent)) {
-                statusEl.textContent = `Retrying section ${i + 1}...`;
+            const sectionKey = sectionNames[i];
+            const originalSectionContent = allSectionsDict[sectionKey];
+            statusEl.textContent = `Simplifying vocabulary for ${sectionKey}...`;
+            let simplifiedSection = originalSectionContent;
+            // If further simplification is needed, you could call a separate function here.
+            statusEl.textContent = `Humanizing ${sectionKey} of ${sectionNames.length}...`;
+            const pastParaphrases = finalHumanizedSections;
+            const sectionAnalysis = analyzeSectionForPatterns(simplifiedSection);
+            const humanizePrompt = buildComprehensivePrompt(sectionKey, allSectionsDict, simplifiedSection, tone, isPersonal, pastParaphrases, sectionAnalysis);
+            let humanizedContent = null;
+            try {
+                humanizedContent = await apiCall(humanizePrompt, 0, 1.9);
+            } catch {
+                humanizedContent = null;
+            }
+            if (!humanizedContent || isNonsense(humanizedContent, originalSectionContent)) {
+                statusEl.textContent = `Retrying humanization for ${sectionKey}...`;
                 try {
-                    humanizedContent = await apiCall(
-                        buildComprehensivePrompt(sectionName, sectionsDict, originalContent, tone, isPersonal, finalSections),
-                        0, 0.7
-                    );
-                    if (isNonsense(humanizedContent, originalContent)) {
-                        humanizedContent = originalContent;
-                    }
+                    humanizedContent = await apiCall(humanizePrompt, 0, 1.0);
+                    if (isNonsense(humanizedContent, originalSectionContent))
+                        humanizedContent = originalSectionContent;
                 } catch {
-                    humanizedContent = originalContent;
+                    humanizedContent = originalSectionContent;
                 }
             }
-            
             humanizedContent = sanitizeAIOutput(humanizedContent);
             humanizedContent = enforceForbiddenWords(humanizedContent);
-            
-            finalSections.push(humanizedContent);
+            humanizedContent = removeParticipialPhrases(humanizedContent);
+            statusEl.textContent = `Reviewing ${sectionKey} for punctuation and style...`;
+            const reviewPrompt = buildIndividualSectionReviewPrompt(humanizedContent);
+            let reviewedContent = null;
+            try {
+                reviewedContent = await apiCall(reviewPrompt, 0, 0.1);
+            } catch {
+                reviewedContent = humanizedContent;
+            }
+            if (!reviewedContent || isNonsense(reviewedContent, originalSectionContent))
+                reviewedContent = humanizedContent;
+            else
+                reviewedContent = sanitizeAIOutput(reviewedContent);
+            reviewedContent = removeParticipialPhrases(reviewedContent);
+            finalHumanizedSections.push(reviewedContent);
+            outputEl.value = finalHumanizedSections.join('\n\n');
+            const words = outputEl.value.trim().match(/\S+/g) || [];
+            $('output-count').textContent = `${words.length} words`;
             progressBar.style.width = `${Math.round(((i + 1) / sectionNames.length) * 100)}%`;
         }
-        
-        statusEl.textContent = 'Final cleanup...';
-        let cleanedText = await finalGrammarCleanup(finalSections.join('\n\n'));
+        statusEl.textContent = 'Cleaning up any leftover AI comments and fixing grammar...';
+        let cleanedText = await finalGrammarCleanup(finalHumanizedSections.join('\n\n'));
         cleanedText = cleanedText.replace(/\n{2,}/g, '\n\n').trim();
-        
         outputEl.value = metadata + cleanedText;
-        
         const finalWords = outputEl.value.trim().match(/\S+/g) || [];
         $('output-count').textContent = `${finalWords.length} words`;
-        
         progressBar.style.width = '100%';
         statusEl.textContent = 'Humanization complete!';
     } catch (error) {
@@ -482,17 +561,14 @@ const processText = async () => {
             progressContainer.style.display = 'none';
             processBtn.disabled = false;
             processBtn.textContent = 'Humanize Text';
-            if (!statusEl.textContent.startsWith('Failed:')) {
+            if (!statusEl.textContent.startsWith('Failed:'))
                 statusEl.textContent = '';
-            }
         }, 2000);
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     const processButton = $('process');
-    const copyButton = $('copy');
-    
     ['input', 'output'].forEach(id => {
         const el = $(id);
         const counter = $(`${id}-count`);
@@ -503,19 +579,20 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('input', updateCount);
         updateCount();
     });
-    
-    copyButton.addEventListener('click', async () => {
-        const output = $('output');
-        if (!output.value) return;
-        try {
-            await navigator.clipboard.writeText(output.value);
-            copyButton.textContent = 'Copied!';
-            setTimeout(() => copyButton.textContent = 'Copy', 1500);
-        } catch {
-            alert('Failed to copy text.');
-        }
-    });
-    
+    const copyTextButton = $('copy');
+    if (copyTextButton) {
+        copyTextButton.addEventListener('click', async () => {
+            const output = $('output');
+            if (!output.value) return;
+            try {
+                await navigator.clipboard.writeText(output.value);
+                copyTextButton.textContent = 'Copied!';
+                setTimeout(() => copyTextButton.textContent = 'Copy', 1500);
+            } catch {
+                alert('Failed to copy text.');
+            }
+        });
+    }
     processButton.addEventListener('click', processText);
 });
 </script>
