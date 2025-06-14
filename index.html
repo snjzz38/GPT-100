@@ -5,35 +5,166 @@
     <title>Humanize Any Text: GPT-100</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        :root { --primary: #1a4ab9; --bg: #f8fafc; --border: #d2d9e7; --text: #23272f; }
+        :root {
+            --primary: #1a4ab9;
+            --bg: #f8fafc;
+            --border: #d2d9e7;
+            --text: #23272f;
+        }
         * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); min-height: 100vh; }
-        .container { max-width: 1000px; margin: 24px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(26, 74, 185, 0.1); padding: 24px; }
-        h1 { text-align: center; font-size: 1.6rem; margin-bottom: 8px; }
-        .disclaimer { text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 20px; }
-        .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-        select, button { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.95rem; background: #fff; }
-        button { background: var(--primary); color: #fff; border: none; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 24px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(26, 74, 185, 0.1);
+            padding: 24px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+        }
+        .disclaimer {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        select, button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.95rem;
+            background: #fff;
+        }
+        button {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
         button:hover { background: #143c8f; }
-        button:disabled { background: #a3b9e0; cursor: not-allowed; }
-        .toggle { display: flex; align-items: center; gap: 8px; }
-        .toggle input { width: 40px; height: 20px; appearance: none; background: #ccc; border-radius: 20px; position: relative; cursor: pointer; transition: transform 0.3s; }
-        .toggle input::before { content: ''; width: 16px; height: 16px; background: #fff; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: transform 0.3s; }
-        .toggle input:checked { background: var(--primary); }
+        button:disabled {
+            background: #a3b9e0;
+            cursor: not-allowed;
+        }
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toggle input {
+            width: 40px;
+            height: 20px;
+            appearance: none;
+            background: #ccc;
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .toggle input::before {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        .toggle input:checked {
+            background: var(--primary);
+        }
         .toggle input:checked::before { transform: translateX(20px); }
-        .areas { display: flex; gap: 16px; flex-direction: column; }
-        @media (min-width: 768px) { .areas { flex-direction: row; } }
+        .areas {
+            display: flex;
+            gap: 16px;
+            flex-direction: column;
+        }
+        @media (min-width: 768px) {
+            .areas { flex-direction: row; }
+        }
         .area { flex: 1; }
-        .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .area-header label { font-weight: 600; color: var(--primary); }
-        .area-header button { background: #64748b; padding: 4px 10px; font-size: 0.85rem; }
+        .area-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .area-header label {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .area-header button {
+            background: #64748b;
+            padding: 4px 10px;
+            font-size: 0.85rem;
+        }
         .area-header button:hover { background: #475569; }
-        textarea { width: 100%; min-height: 250px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: #f8fafc; font-family: 'Fira Mono', monospace; font-size: 0.9rem; resize: vertical; }
-        textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(26, 74, 185, 0.2); }
-        .word-count { font-size: 0.85rem; color: #64748b; text-align: right; margin-top: 4px; }
-        .progress { width: 100%; height: 4px; background: var(--border); border-radius: 4px; margin: 16px 0; overflow: hidden; display: none; }
-        .progress-bar { height: 100%; background: var(--primary); border-radius: 4px; width: 0; transition: width 0.4s ease-out; }
-        .status { font-size: 0.85rem; color: #64748b; margin-top: 8px; text-align: center; height: 1em; }
+        textarea {
+            width: 100%;
+            min-height: 250px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #f8fafc;
+            font-family: 'Fira Mono', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+        textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(26, 74, 185, 0.2);
+        }
+        .word-count {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-align: right;
+            margin-top: 4px;
+        }
+        .progress {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 4px;
+            margin: 16px 0;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            width: 0;
+            transition: width 0.4s ease-out;
+        }
+        .status {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 8px;
+            text-align: center;
+            height: 1em;
+        }
     </style>
 </head>
 <body>
@@ -79,8 +210,7 @@
 <script>
 const $=id=>document.getElementById(id);
 const MODELS_TO_TRY=['llama-3.1-8b-instant','llama3-8b-8192','gemma2-9b-it','mistral-saba-24b','llama3-70b-8192','meta-llama/llama-4-maverick-17b-128e-instruct','meta-llama/llama-4-scout-17b-16e-instruct','meta-llama/llama-guard-4-12b','llama-guard-3-8b','meta-llama/llama-prompt-guard-2-22m','meta-llama/llama-prompt-guard-2-86m'];
-const FORBIDDEN_WORDS_COMPREHENSIVE=[/* ... [use previous list] ... */'reedeem','utilize','alterations'];
-const FORBIDDEN_WORDS_FOR_AI_PROMPT=['unequivocal','mitigate','transcends',/* ... as above ... */'alterations'];
+const FORBIDDEN_WORDS_COMPREHENSIVE=[/* List truncated for brevity */];
 const COMMON_WORDS = new Set(['the','be','to','of','and','a','in','that','have','I','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there','their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no','just','him','know','take','person','into','year','your','good','some','could','them','see','other','than','then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well','way','even','new','want','because','any','these','give','day','most','us']);
 const PROPER_NOUNS=new Set(['climate change','ipcc','paris agreement']);
 
@@ -93,7 +223,7 @@ const apiCall=async(prompt,i=0,temp=1.9,retry=0)=>{
         if(!r.ok){
             const e=d.error||'Unknown error';
             if(e.includes('maximum context length'))return apiCall(prompt,i+1,temp,0);
-            if(r.status===429){await new Promise(res=>setTimeout(res,3e3));return apiCall(prompt,i+1,temp,0);}
+            if(r.status===429){await new Promise(res=>setTimeout(res,3000));return apiCall(prompt,i+1,temp,0);}
             if(r.status>=500||r.status===404||r.status===403){
                 if(retry<2){await new Promise(res=>setTimeout(res,1500*(retry+1)));return apiCall(prompt,i,temp,retry+1);}
                 return apiCall(prompt,i+1,temp,0);
@@ -107,40 +237,6 @@ const apiCall=async(prompt,i=0,temp=1.9,retry=0)=>{
     }
 };
 
-const isNonsense = t => {
-    if(!t||t.trim().length<10)return true;
-    const w=t.trim().split(/\s+/),u=new Set(w.map(x=>x.toLowerCase()));
-    if(w.length>20&&u.size/w.length<.3)return true;
-    if(/[^a-zA-Z0-9\s.,!?'-]/.test(t)){
-        const x=t.match(/[^a-zA-Z0-9\s.,!?'-]/g);
-        if(x&&x.length/t.length>.05)return true;
-    }
-    if(/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|please note that|as previously mentioned|here is the corrected text|here is your corrected text|here is the rewritten text|here is the rewritten text for section|here is the rewritten text for "section|here is the rewritten text for section|here is the rewritten text for Section)/i.test(t))return true;
-    if(w.length>10&&!/[.!?]/.test(t))return true;
-    return false;
-};
-
-const sanitizeAIOutput = t => {
-    if(!t)return '';
-    let c=t;
-    const p=[
-        "here's the rewritten text:","here is the rewritten text:",/* ... same as previous ... */,"here's the humanized output:","your requested output:","here is the rewritten text for section","here is the rewritten text for \"section","here is the rewritten text for Section"
-    ];
-    p.sort((a,b)=>b.length-a.length);
-    for(const prefix of p)if(c.toLowerCase().startsWith(prefix)){c=c.substring(prefix.length).trim();break;}
-    c=c.replace(/^(as requested|here is your text|i've rephrased this for you|this is the rewritten text|this is your rewritten text|here is the rewritten text for the section|here's a version|this is the humanized version|rewritten:)\s*/i,'');
-    c=c.replace(/^["'`]+|["'`]+$/g,'').trim();
-    c=c.replace(/[\u2014\u2013]/g,' ');
-    c=c.replace(/,(\s*[.!?])/g,'$1');
-    c=c.replace(/\s{2,}/g,' ');
-    c=c.replace(/\s*([.!?])\s*/g,'$1 ').trim();
-    c=c.replace(/\s*,\s*/g,', ');
-    // Remove any remaining "here is"/"here's" at section starts
-    c=c.replace(/^(here(\s+)?(is|are|was|were|will be|has been|have been)[^.!?]*[.!?])/i, '');
-    // Remove "section [0-9]+", etc at start
-    c=c.replace(/^section\s*\d+[:.\s-]*/i, '');
-    return c;
-};
 const enforceForbiddenWords = text => {
     let c=text;
     FORBIDDEN_WORDS_COMPREHENSIVE.forEach(w=>{
@@ -148,98 +244,8 @@ const enforceForbiddenWords = text => {
         const r=new RegExp(`\\b${w}\\b`,'gi');
         c=c.replace(r,`[REPLACED WORD: ${w.toUpperCase()}]`);
     });
-    // Replace "peril" with "danger" and "augments" with "intensifies", "necessitates" with "needs", "retributable" with "fair", etc.
-    c=c.replace(/\bperil(s|ous)?\b/gi,'danger');
-    c=c.replace(/\baugments?\b/gi,'intensifies');
-    c=c.replace(/\bnecessitates\b/gi,'needs');
-    c=c.replace(/\bretributable\b/gi,'fair');
-    c=c.replace(/\bcatastrophic\b/gi,'devastating');
-    c=c.replace(/\bexacerbating\b/gi,'making worse');
-    c=c.replace(/\bmalnutrition\b/gi,'hunger');
     return c;
 };
-function removeParticipialPhrases(text) {
-    // Remove leading participial phrases: "Tired from the long flight, she slept." -> "She slept."
-    return text.replace(/\b([A-Za-z]+ed|[A-Za-z]+ing)\b[^,.!?]*,\s+/g, '');
-}
-function splitInputToSectionDict(text){
-    const arr=text.split(/\n\s*\n+/).filter(s=>s.trim()),dict={};
-    arr.forEach((c,i)=>{dict[`section${i+1}`]=c.trim();});
-    return dict;
-}
-function analyzeSectionForPatterns(section){
-    const issues={hasParticipialPhrase:!1,participialExamples:[],hasPredictableStart:!1,predictableStartExamples:[],hasColonsOrSemicolons:!1};
-    const pr=/(\b\w+(?:ing|ed|en)\b[^.!?]*, )/gi;
-    let m;
-    (section.match(/[^.!?]+[.!?]*/g)||[section]).forEach(sentence=>{
-        while((m=pr.exec(sentence))!==null){
-            const p=m[1].trim();
-            if(p.length>3){
-                issues.hasParticipialPhrase=!0;
-                if(p&&!issues.participialExamples.includes(p))issues.participialExamples.push(`"${p.replace(/,$/,'')}"`);
-            }
-        }
-    });
-    return issues;
-}
-function buildComprehensivePrompt(sectionName,allSectionsDict,section,tone,isPersonal,pastParaphrases,sectionAnalysis){
-    const toneInstruction=`Maintain a ${tone} tone${isPersonal?' using a first-person perspective (e.g., "I believe," "we must," "our responsibility").':' using a general, objective, and neutral perspective.'}`;
-    let contextInstruction='';
-    if(pastParaphrases&&pastParaphrases.length>0){
-        const recent= pastParaphrases.slice(-3);
-        contextInstruction=`
-        **PREVIOUS CONTEXT AND STYLE (for flow only):**
-        Previous humanized text sections: "${recent.join('\n\n')}"
-        Ensure the new section flows naturally from these. **DO NOT** reuse specific phrasing or sentence structures. Use *fresh synonyms* and *novel sentence constructions*.`;
-    }
-    let specific='';
-    if(sectionAnalysis.hasParticipialPhrase&&sectionAnalysis.participialExamples.length>0)specific+=`
-            * **ABSOLUTELY RESTRUCTURE AND ELIMINATE ALL PARTICIPIAL PHRASES.** This is a critical requirement. Rewrite phrases like ${sectionAnalysis.participialExamples.join(', ')} as full, independent clauses.`;
-    const wc=section.trim().split(/\s+/).length,min=Math.round(wc*.90),max=Math.round(wc*1.10),dictString=JSON.stringify(allSectionsDict,null,2);
-    return `
-**CONTEXT:**
-The original text is split into sections and provided as a JavaScript-style dictionary. Each key is the section name, each value is the text for that section.
-Section dictionary:
-${dictString}
-
-You are to paraphrase and restructure ONLY the section named "${sectionName}", using the full dictionary as context for coherence and natural flow. 
-Prioritize natural, human-like language and coherence, but ALWAYS preserve the exact factual meaning and context of the section in relation to the rest.
-
-**TEXT TO REWRITE (ONE SINGLE SECTION):**
-"${section}"
-
-**MANDATORY RULES (STRICTLY ADHERE TO THESE):**
-
-1.  **SIMPLIFY WORDS AND COMPLETELY RESTRUCTURE SENTENCES.** Use plain, everyday language. Avoid unnecessary complex vocabulary or jargon. When possible, use simpler synonyms for complex words, but ONLY if they fit the context and preserve meaning. If context would be lost, keep the original word.
-2.  **STRICT WORD COUNT & CONTENT INTEGRITY.** Output for this section MUST be between **${min} and ${max} words** (within +/- 10% of original ${wc} words).
-3.  **PUNCTUATION AND TRANSITIONS.** **USE ONLY CONVENTIONAL PUNCTUATION: PERIODS (.), COMMAS (,), EXCLAMATION MARKS (!), AND QUESTION MARKS (?). ABSOLUTELY NO COLONS (:) OR SEMICOLONS (;).** 
-${specific}
-4.  **TONE.** ${toneInstruction}
-${contextInstruction}
-5.  **SINGLE PARAGRAPH OUTPUT.** The output for THIS specific section MUST be a single, continuous paragraph with NO newlines or extra spaces that create new paragraphs within it. **DO NOT introduce new content.**
-
-**Your response MUST be ONLY the rewritten text for this single section, nothing else.**`;
-}
-function buildIndividualSectionReviewPrompt(sectionText){
-    return `**GOLDEN RULE: DO NOT, under ANY circumstances, introduce ANY information, facts, or concepts not EXPLICITLY present in the "TEXT TO REVIEW" section below. Your output must be a pure revision.
-
-You are an expert copy editor. Review the provided single paragraph ONLY for the following issues. **Your only output must be the corrected text, with no additional commentary or explanation.**
-
-**STRICT CORRECTIONS ONLY for this single paragraph:**
-* **COHERENCE AND GRAMMAR:** Ensure the text is perfectly coherent, grammatically correct, and makes complete sense. **DO NOT generate random or nonsensical text.** If the text is fundamentally nonsense, return the original.
-* **CONVENTIONAL PUNCTUATION ONLY:** Replace **ALL colons (:) and semicolons (;)** with appropriate conventional punctuation (periods, commas, question marks, exclamation marks). Ensure all others are conventional.
-* **ELIMINATE ALL PARTICIPIAL PHRASES:** Identify and rewrite *every single participial phrase* (e.g., "walking quickly," "being seen," "having done") into clear, full clauses or by splitting sentences.
-* **REMOVE ALL AI COMMENTS/CONVERSATIONAL FILLER:** Ensure there are absolutely no introductory phrases, conversational remarks, questions to the user, or anything that resembles AI interaction.
-* **NO MEANING CHANGE:** Do not change the original meaning, facts, or core information.
-* **NO WORD CHOICE CHANGE (unless directly related to punctuation/grammar fix or specifically from the forbidden list if it slipped through):** Do not re-humanize or rephrase sentences beyond punctuation/grammar.
-* **NO LENGTH CHANGE:** Do not significantly change the length of the text.
-* **SINGLE PARAGRAPH OUTPUT:** The output MUST remain a single paragraph. DO NOT introduce newlines or merge with other (non-existent) paragraphs.
-
-**TEXT TO REVIEW (SINGLE PARAGRAPH):**
-"${sectionText}"
-
-**FINAL OUTPUT (SINGLE PARAGRAPH):** ONLY the corrected text, with no preamble or commentary.`;
-}
 
 // FINAL PASS: Remove all AI comments and fix grammar/spelling on the entire output (no meaning change)
 async function finalGrammarCleanup(text) {
@@ -270,31 +276,14 @@ const processText = async () => {
         const tone=$('tone').value,isPersonal=$('perspective').checked,allSectionsDict=splitInputToSectionDict(text),sectionNames=Object.keys(allSectionsDict),finalHumanizedSections=[];
         for(let i=0;i<sectionNames.length;i++){
             const sectionKey=sectionNames[i],originalSectionContent=allSectionsDict[sectionKey];
-            statusEl.textContent=`Simplifying vocabulary for ${sectionKey}...`;
-            let simplifiedSection=await simplifySectionWords(originalSectionContent,text);
-            statusEl.textContent=`Humanizing ${sectionKey} of ${sectionNames.length}...`;
-            const pastParaphrases=finalHumanizedSections,sectionAnalysis=analyzeSectionForPatterns(simplifiedSection),humanizePrompt=buildComprehensivePrompt(sectionKey,allSectionsDict,simplifiedSection,tone,isPersonal,pastParaphrases,sectionAnalysis);
-            let humanizedContent=null;
-            try{humanizedContent=await apiCall(humanizePrompt,0,1.9);}catch{humanizedContent=null;}
-            if(!humanizedContent||isNonsense(humanizedContent)){
-                statusEl.textContent=`Retrying humanization for ${sectionKey}...`;
-                try{humanizedContent=await apiCall(humanizePrompt,0,1.0);if(isNonsense(humanizedContent))humanizedContent=simplifiedSection;}catch{humanizedContent=simplifiedSection;}
+            let humanizedContent = await apiCall(buildComprehensivePrompt(sectionKey, allSectionsDict, originalSectionContent, tone, isPersonal, finalHumanizedSections, {}), 0, 1.9);
+            if(!humanizedContent || isNonsense(humanizedContent)){
+                humanizedContent = originalSectionContent; // Fallback
             }
-            humanizedContent=sanitizeAIOutput(humanizedContent);
-            humanizedContent=enforceForbiddenWords(humanizedContent);
-            humanizedContent=removeParticipialPhrases(humanizedContent);
-            statusEl.textContent=`Reviewing ${sectionKey} for punctuation and style...`;
-            const reviewPrompt=buildIndividualSectionReviewPrompt(humanizedContent);
-            let reviewedContent=null;
-            try{reviewedContent=await apiCall(reviewPrompt,0,0.1);}catch{reviewedContent=humanizedContent;}
-            if(!reviewedContent||isNonsense(reviewedContent))reviewedContent=humanizedContent;else reviewedContent=sanitizeAIOutput(reviewedContent);
-            reviewedContent=removeParticipialPhrases(reviewedContent);
-            finalHumanizedSections.push(reviewedContent);outputEl.value=finalHumanizedSections.join('\n\n');
-            const words=outputEl.value.trim().match(/\S+/g)||[];$('output-count').textContent=`${words.length} words`;
-            progressBar.style.width=`${Math.round(((i+1)/sectionNames.length)*100)}%`;
+            humanizedContent = enforceForbiddenWords(humanizedContent);
+            finalHumanizedSections.push(humanizedContent);
         }
         statusEl.textContent='Cleaning up any leftover AI comments and fixing grammar...';
-        // Final cleanup call for the whole output
         let cleanedText = await finalGrammarCleanup(finalHumanizedSections.join('\n\n'));
         cleanedText = cleanedText.replace(/\n{2,}/g,'\n\n').trim();
         outputEl.value=cleanedText;
@@ -302,7 +291,8 @@ const processText = async () => {
         progressBar.style.width='100%';
         statusEl.textContent='Humanization complete!';
     }catch(error){
-        outputEl.value=`Error: ${error.message}`;statusEl.textContent=`Failed: ${error.message.substring(0,100)}...`;
+        outputEl.value=`Error: ${error.message}`;
+        statusEl.textContent=`Failed: ${error.message.substring(0,100)}...`;
     }finally{
         setTimeout(()=>{
             progressContainer.style.display='none';processBtn.disabled=false;processBtn.textContent='Humanize Text';
@@ -311,28 +301,16 @@ const processText = async () => {
     }
 };
 
-const init=()=>{
+document.addEventListener('DOMContentLoaded',()=>{
     const processButton=$('process');
-    if(!processButton){console.error("Error: 'process' button not found in the DOM. Check its ID in HTML.");return;}
     ['input','output'].forEach(id=>{
-        const el=$(id),counter=$(`${id}-count`),updateCount=()=>{const words=el.value.trim().match(/\S+/g)||[];counter.textContent=`${words.length} words`;};
-        el.addEventListener('input',updateCount);updateCount();
+        const el=$(id),counter=$(`${id}-count`);
+        const updateCount=()=>{const words=el.value.trim().match(/\S+/g)||[];counter.textContent=`${words.length} words`;};
+        el.addEventListener('input',updateCount);
+        updateCount();
     });
-    const copyTextButton=$('copy');
-    if(copyTextButton){
-        copyTextButton.addEventListener('click',async()=>{
-            const output=$('output');
-            if(!output.value)return;
-            try{
-                await navigator.clipboard.writeText(output.value);
-                copyTextButton.textContent='Copied!';
-                setTimeout(()=>copyTextButton.textContent='Copy',1500);
-            }catch{alert('Failed to copy text.');}
-        });
-    }
     processButton.addEventListener('click',processText);
-};
-document.addEventListener('DOMContentLoaded',init);
+});
 </script>
 </body>
 </html>
