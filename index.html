@@ -78,7 +78,7 @@
             border-radius: 20px;
             position: relative;
             cursor: pointer;
-            transition: transform 0.3s; /* Adjusted from background-color for visual */
+            transition: transform 0.3s;
         }
         .toggle input::before {
             content: '';
@@ -211,16 +211,13 @@
     </div>
 <script>
 
-    
-    // Define an array of models to try, in order of preference/fallback
-    // Prioritizing faster, generally good-performing models first.
+
     const MODELS_TO_TRY = [
         'llama-3.1-8b-instant',
         'llama3-8b-8192',
         'gemma2-9b-it',
         'mistral-saba-24b',
         'llama3-70b-8192',
-        // Fallback to larger or more specialized models if initial ones struggle
         'meta-llama/llama-4-maverick-17b-128e-instruct',
         'meta-llama/llama-4-scout-17b-16e-instruct',
         'meta-llama/llama-guard-4-12b', 
@@ -228,8 +225,7 @@
         'meta-llama/llama-prompt-guard-2-22m',
         'meta-llama/llama-prompt-guard-2-86m'
     ];
-
-    // Comprehensive list for external post-processing replacement
+    
     const FORBIDDEN_WORDS_COMPREHENSIVE = [
         'exacerbating', 'unequivocal', 'mitigate', 'transcends', 'stark', 'dire', 'exert', 'fortress', 'induce', 
         'ameliorate', 'socioeconomic', 'culminate', 'imperative', 'formidable', 'subsequently', 'hitherto', 
@@ -251,10 +247,9 @@
         'solid', 'evidence', 'innovative', 'solutions', 'universal', 'responsibility', 'insurmountable', 'obstacles', 
         'vast', 'opportunity', 'establish', 'sustainable', 'resilient', 'just', 'current and future generations', 
         'proactive', 'stance', 'define', 'sustainable', 'return', 'long', 'fragile', 'well-being',
-        'necessitate', 'ecstatic', 'reedeem', 'utilize', 'alterations' // Added 'alterations'
+        'necessitate', 'ecstatic', 'redeem', 'utilize', 'alterations' 
     ];
 
-    // Smaller, critical list for the AI to focus on in the prompt (common AI-like words)
     const FORBIDDEN_WORDS_FOR_AI_PROMPT = [
         'unequivocal', 'mitigate', 'transcends', 'stark', 'dire', 'exert', 'fortress', 
         'induce', 'ameliorate', 'socioeconomic', 'culminate', 'imperative', 'formidable', 'subsequently', 
@@ -276,7 +271,7 @@
         'solid', 'evidence', 'innovative', 'solutions', 'universal', 'responsibility', 'insurmountable', 'obstacles', 
         'vast', 'opportunity', 'establish', 'sustainable', 'resilient', 'just', 'current and future generations', 
         'proactive', 'stance', 'define', 'sustainable', 'return', 'long', 'fragile', 'well-being',
-        'necessitate', 'ecstatic', 'reedeem', 'utilize', 'alterations' // Added 'alterations'
+        'necessitate', 'ecstatic', 'redeem', 'utilize', 'alterations' 
     ];
 
     const $ = id => document.getElementById(id);
@@ -339,22 +334,18 @@
         processButton.addEventListener('click', processText);
     };
 
-    // Helper to check if text is likely nonsense or contains unexpected AI filler
     const isNonsense = (text) => {
-        if (!text || text.trim().length < 10) return true; // Too short to be meaningful
+        if (!text || text.trim().length < 10) return true; 
         const words = text.trim().split(/\s+/);
-        // Check for very low word diversity (e.g., lots of repetition)
         const uniqueWords = new Set(words.map(w => w.toLowerCase()));
-        if (words.length > 20 && uniqueWords.size / words.length < 0.3) return true; // Less than 30% unique words
-        // Check for unusual character patterns (e.g., excessive symbols, very long "words" without spaces)
-        if (/[^a-zA-Z0-9\s.,!?'-]/.test(text)) { // Contains unexpected special characters
+        if (words.length > 20 && uniqueWords.size / words.length < 0.3) return true; 
+        if (/[^a-zA-Z0-9\s.,!?'-]/.test(text)) { 
             const unexpectedChars = text.match(/[^a-zA-Z0-9\s.,!?'-]/g);
-            if (unexpectedChars && unexpectedChars.length / text.length > 0.05) return true; // More than 5% non-standard characters
+            if (unexpectedChars && unexpectedChars.length / text.length > 0.05) return true;
         }
-        // Check for common AI conversational filler that might slip through sanitize
+
         if (/(as an ai language model|i am an ai|i cannot|i can help with that|here is the text you requested|let me know if you need any other assistance|i hope this helps|i've done my best|it is important to note|in summary|in conclusion)/i.test(text)) return true;
         
-        // Simple check for lack of proper sentence structure (e.g., no periods for long text)
         if (words.length > 10 && !/[.!?]/.test(text)) return true;
 
         return false;
@@ -410,13 +401,13 @@
 
         cleanText = cleanText.replace(/[\u2014\u2013]/g, ' '); 
 
-        // Remove trailing commas before periods/end of sentence
+
         cleanText = cleanText.replace(/,(\s*[.!?])/g, '$1');
-        // Remove multiple spaces
+
         cleanText = cleanText.replace(/\s{2,}/g, ' ');
-        // Remove any leading/trailing whitespace around sentences
+
         cleanText = cleanText.replace(/\s*([.!?])\s*/g, '$1 ').trim();
-        cleanText = cleanText.replace(/\s*,\s*/g, ', '); // Standardize comma spacing
+        cleanText = cleanText.replace(/\s*,\s*/g, ', '); 
 
         return cleanText;
     };
@@ -555,9 +546,8 @@
         }
 
         const originalWordCount = section.trim().split(/\s+/).length;
-        // Adjusted target word count range to be stricter and explicit
-        const targetMinWords = Math.round(originalWordCount * 0.90); // Stricter range
-        const targetMaxWords = Math.round(originalWordCount * 1.10); // Stricter range
+        const targetMinWords = Math.round(originalWordCount * 0.90); 
+        const targetMaxWords = Math.round(originalWordCount * 1.10); 
 
         const keywordsAndProperNounsToRetain = [
             'climate change', 'humanity', '21st century', 'temperature', 'precipitation', 
@@ -576,7 +566,7 @@
             'early warning systems', 'climate-smart agriculture', 'political will', 'public engagement',
             'equitable resource distribution', 'present reality', 'unified global response', 'science', 'innovation',
             'moral responsibility', 'sustainable', 'resilient', 'just world', 'current and future generations',
-            'combustion', 'United Nations Intergovernmental Panel' // Added specifically from the new input
+            'combustion', 'United Nations Intergovernmental Panel' 
         ];
         
         let keywordInstruction = `
@@ -614,7 +604,7 @@
     };
 
 
-    // Prompt for individual section review (now applied to each section after initial humanization)
+
     const buildIndividualSectionReviewPrompt = (sectionText) => {
         return `**GOLDEN RULE: DO NOT, under ANY circumstances, introduce ANY information, facts, or concepts not EXPLICITLY present in the "TEXT TO REVIEW" section below. Your output must be a pure rephrasing of the provided text, and nothing more. This is a STRICT information-preservation task, not an information-generation task. Do not make up any new details or draw on any outside knowledge.**
 
